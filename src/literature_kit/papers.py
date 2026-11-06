@@ -330,8 +330,9 @@ def _redacted_json(result):
             key = load_key(provider)
         except Exception:
             continue
-        if len(key) >= 6:
-            text = text.replace(key, '[redacted]')
+        if key:
+            for variant in {key, json.dumps(key, ensure_ascii=False)[1:-1], json.dumps(key)[1:-1]}:
+                text = text.replace(variant, '[redacted]')
     return text
 
 

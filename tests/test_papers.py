@@ -112,7 +112,9 @@ def test_cli_saves_failed_search_without_leaking_key(tmp_path, monkeypatch, caps
         raise PaperError('core: HTTP 401; check key, quota or query; key=secret-value')
     monkeypatch.setattr(Client, 'request', request)
     assert main(['search', '--provider', 'core', '--query', 'protein']) == 1
-    result = json.loads(capsys.readouterr().out)
+    output = capsys.readouterr().out
+    assert 'secret-value' not in output
+    result = json.loads(output)
     assert result['query'] == 'protein'
     assert result['error']
     saved = list((tmp_path / 'papers-api').glob('*.json'))
