@@ -95,6 +95,6 @@ CLI network calls emit JSON and save a unique scratch audit (`saved_to`, `audit_
 
 Pacing/retries are built in. Semantic Scholar requests are spaced 1.1 seconds apart in one process. Separate processes/agents sharing a key or IP must serialize work; do not assume their quotas are coordinated. Respect Retry-After/retry-later results rather than loop immediately. Existing account calls may consume quota/balance; large batches require the user's intended scope. No automatic top-up is provided.
 
-Observed limitation: CORE work-detail/full-text lookup may return HTTP 301 redirects; keep redirects rejected, report the failure, and use an independently authorized source route. Official OpenAlex bulk CLI is a separate, unwrapped route; do not imply it is implemented here.
+CORE work-detail/full-text lookup uses the canonical `/works/{id}` path (no trailing slash); redirects remain rejected on principle — report any redirect failure rather than following it. Official OpenAlex bulk CLI is a separate, unwrapped route; do not imply it is implemented here.
 
 Log each exact query, settings, and result in the active project's search catalogue or log, including failures, and deduplicate retained papers. Report what was inspected (metadata, abstract, full text, original PDF/figures), what remains unverified, and what new evidence actually adds. Follow local connector-passage logging and verification rules before citing claims.

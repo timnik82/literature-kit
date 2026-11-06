@@ -149,7 +149,7 @@ Official references checked 2026-11-05:
 - https://api.semanticscholar.org/api-docs/recommendations
 - https://core.ac.uk/services/api
 - https://api.core.ac.uk/docs/v3 (browser access returned 403 during implementation;
-  authenticated CORE smoke testing remains required).
+  authenticated CORE API access was verified separately by live diagnostics, see below).
 
 
 ## Official OpenAlex CLI: complementary bulk route, not wrapped here
@@ -168,8 +168,11 @@ returned 429 despite pacing; do not infer a permanent limitation.
 Europe PMC CLI lookup, article XML and supplement archive downloads succeeded
 for a live test article: 106,293 XML bytes, 3,126,891 ZIP bytes and 13
 members, saved in scratch only. No PDF completeness review was performed.
-Recommendations, broad discovery queries and CORE full text remain untested
-live. These checks are diagnostics, not a completed literature evidence search.
+CORE `lookup --fulltext` also succeeded live after the work-detail path was
+corrected (no trailing slash on `/works/{id}`); recommendations and broad
+discovery queries remain untested live, and no live pagination or bulk
+benchmark was performed. These checks are diagnostics, not a completed
+literature evidence search.
 
 
 
@@ -196,9 +199,6 @@ cannot be guaranteed; the CLI reports the failure as JSON on stdout.
 Use [literature-api-toolbox](../skills/literature-api-toolbox/SKILL.md) for provider selection, query
 refinement, repository/version reconciliation and source checks. Copy that folder into the agent runtime skills
 directory to enable discovery; keys and the literature-kit installation remain separate.
-
-Known limitation: CORE work-detail `lookup --fulltext` returned HTTP 301 in testing; the cause is unresolved and
-it is not a universal CORE failure. No live pagination or bulk benchmark was performed.
 
 ## Shared command and configuration
 

@@ -11,6 +11,15 @@ def test_status_without_network(capsys):
     assert set(current['providers']) == {'openalex', 'semantic-scholar', 'core', 'europe-pmc'}
 
 
+def test_docs_do_not_repeat_fixed_core_301_limitation():
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    for rel in ('docs/papers-api.md', 'skills/literature-api-toolbox/SKILL.md'):
+        text = (root / rel).read_text(encoding='utf-8')
+        assert '301' not in text, rel
+        assert 'untested\nlive' not in text, rel
+
+
 def test_python_m_status_and_import_is_side_effect_free():
     import subprocess
     import sys
