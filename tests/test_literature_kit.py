@@ -32,6 +32,13 @@ def test_docs_do_not_repeat_fixed_core_301_limitation():
         assert 'CORE full text remain untested' not in flat, rel
 
 
+def test_skill_front_matter_has_no_bare_colon():
+    from pathlib import Path
+    text = (Path(__file__).resolve().parents[1] / 'skills/literature-api-toolbox/SKILL.md').read_text(encoding='utf-8')
+    description = next(line for line in text.splitlines() if line.startswith('description:'))
+    assert ': ' not in description.removeprefix('description: ')
+
+
 def test_skill_describes_the_combined_tool_order():
     from pathlib import Path
     skill = (Path(__file__).resolve().parents[1] / 'skills/literature-api-toolbox/SKILL.md').read_text(encoding='utf-8')

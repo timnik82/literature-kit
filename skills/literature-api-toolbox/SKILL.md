@@ -1,6 +1,6 @@
 ---
 name: literature-api-toolbox
-description: Use when an agent needs to find, check or retrieve scholarly papers efficiently with the shared literature-kit tools, in the right order, optionally combined with Firecrawl Research: discovery, DOI or PMID lookup, related-paper expansion, in-body passage checks, and available Europe PMC article text and supplements.
+description: Use when an agent needs to find, check or retrieve scholarly papers efficiently with the shared literature-kit tools, in the right order, optionally combined with Firecrawl Research, for discovery, DOI or PMID lookup, related-paper expansion, in-body passage checks, and available Europe PMC article text and supplements.
 ---
 
 # Literature API toolbox
