@@ -181,3 +181,9 @@ def test_validate_xml_rejects_entity_declarations_and_nested_ids():
     assert validate_xml(nested, 'PMC1')['format'] == 'JATS XML'
     with pytest.raises(PaperError, match='requested PMCID'):
         validate_xml(nested, 'PMC2')
+    padded = (b'<?xml version="1.0"?>' + b'<!--' + b'x' * 70000 + b'-->'
+              b'<!DOCTYPE article [<!ENTITY a "expanded">]>'
+              b'<article><front><article-meta><article-id pub-id-type="pmc">1</article-id></article-meta></front>'
+              b'<body><p>&a;</p></body></article>')
+    with pytest.raises(PaperError, match='DTD'):
+        validate_xml(padded, 'PMC1')

@@ -76,7 +76,8 @@ def lookup(client, identifier):
 
 
 def validate_xml(data, pmcid):
-    if b'<!DOCTYPE' in data[:4096].upper() or b'<!ENTITY' in data[:65536].upper():
+    upper = data.upper()
+    if b'<!DOCTYPE' in upper or b'<!ENTITY' in upper:
         raise PaperError('Article XML contains a DTD or entity declaration; nothing saved')
     try:
         root = ET.fromstring(data)
