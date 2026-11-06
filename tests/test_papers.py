@@ -162,6 +162,25 @@ def test_auth_in_header_not_url_and_response_redacted():
     assert 'private-key' not in json.dumps(client.lookup('W1'))
 
 
+def test_snapshot_redaction_preserves_key_substrings_in_prose():
+    client = Client('openalex', 'cell', interval=0)
+    client.request = lambda path, params: {'id': 'W1', 'title': 'cell biology cell',
+                                           'authorships': [], 'note': 'cell'}
+    result = client.lookup('W1')
+    assert result['papers'][0]['title'] == 'cell biology cell'
+    assert result['requests'][0]['response']['note'] == '[REDACTED]'
+
+
+def test_redacted_json_redacts_delimited_but_not_prose(monkeypatch):
+    import literature_kit.papers as papers
+    monkeypatch.setenv('CORE_API_KEY', 'secret-value')
+    text = papers._redacted_json({'error': 'failed; key=secret-value',
+                                  'title': 'secret-value in prose stays'})
+    assert 'key=secret-value' not in text
+    assert 'key=[redacted]' in text
+    assert 'secret-value in prose stays' in text
+
+
 def test_long_retry_after_stops_without_sleep(monkeypatch):
     client = Client('core', 'key', interval=0)
     def opener(req, timeout):

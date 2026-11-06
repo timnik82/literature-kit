@@ -236,11 +236,8 @@ class Client:
 
     def snapshot(self, result):
         """Detach nested audit data and redact provider-echoed credentials."""
-        serialized = json.dumps(result, ensure_ascii=False)
-        if self.key:
-            encoded_key = json.dumps(self.key, ensure_ascii=False)[1:-1]
-            serialized = serialized.replace(encoded_key, '[REDACTED]')
-        return json.loads(serialized)
+        detached = json.loads(json.dumps(result, ensure_ascii=False))
+        return _redact_secrets(detached, {self.key: '[REDACTED]'} if self.key else {})
 
     def search(self, query: str, limit: int = 20, *, filter_value: str | None = None):
         if not query.strip() or not 1 <= limit <= 1000:
@@ -335,18 +332,52 @@ class Client:
         return self._result('recommend', identifier, data.get('recommendedPapers', []))
 
 
+def _redact_text(text, key, marker):
+    if text == key:
+        return marker
+    for variant in {key, json.dumps(key, ensure_ascii=False)[1:-1], json.dumps(key)[1:-1]}:
+        if not variant:
+            continue
+        if text == variant:
+            return marker
+        text = text.replace(f'Bearer {variant}', marker)
+        text = re.sub(r'(?i)((?:api[-_]?key|key|authorization)\s*[:=]\s*["\']?)' + re.escape(variant),
+                      r'\g<1>' + marker, text)
+        # A long random key appearing verbatim cannot be legitimate prose;
+        # short keys are only redacted exactly or in delimited contexts so
+        # ordinary words containing them survive.
+        if len(variant) >= 16:
+            text = text.replace(variant, marker)
+    return text
+
+
+def _redact_secrets(obj, secrets):
+    """Copy ``obj`` replacing exact/delimited occurrences of each key."""
+    if isinstance(obj, dict):
+        return {_redact_secrets(k, secrets): _redact_secrets(v, secrets) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_redact_secrets(v, secrets) for v in obj]
+    if isinstance(obj, tuple):
+        return [_redact_secrets(v, secrets) for v in obj]
+    if isinstance(obj, str):
+        for key, marker in secrets.items():
+            if key:
+                obj = _redact_text(obj, key, marker)
+        return obj
+    return obj
+
+
 def _redacted_json(result):
     """Serialize a CLI result with any configured API key value replaced, so a key can never reach stdout or an audit file."""
-    text = json.dumps(result, ensure_ascii=False, indent=2)
+    secrets = {}
     for provider in PROVIDERS:
         try:
             key = load_key(provider)
         except Exception:
             continue
         if key:
-            for variant in {key, json.dumps(key, ensure_ascii=False)[1:-1], json.dumps(key)[1:-1]}:
-                text = text.replace(variant, '[redacted]')
-    return text
+            secrets[key] = '[redacted]'
+    return json.dumps(_redact_secrets(result, secrets), ensure_ascii=False, indent=2)
 
 
 def run(args):
