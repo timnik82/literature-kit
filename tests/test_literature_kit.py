@@ -18,6 +18,7 @@ def test_docs_do_not_repeat_fixed_core_301_limitation():
         text = (root / rel).read_text(encoding='utf-8')
         assert '301' not in text, rel
         assert 'untested\nlive' not in text, rel
+        assert 'firecrawl' not in text.lower(), rel
 
 
 def test_python_m_status_and_import_is_side_effect_free():

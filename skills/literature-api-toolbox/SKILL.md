@@ -1,6 +1,6 @@
 ---
 name: literature-api-toolbox
-description: Use when an agent needs the shared literature-kit tools or Firecrawl research index for scholarly discovery, DOI or PMID lookup, related-paper recommendations, in-body passage verification, or available Europe PMC article text and supplements.
+description: Use when an agent needs the shared literature-kit tools for scholarly discovery, DOI or PMID lookup, related-paper recommendations, or available Europe PMC article text and supplements.
 ---
 
 # Literature API toolbox
@@ -25,7 +25,7 @@ literature-kit status
 
 Separately from path routing, verify provider key presence (keys do **not** configure paths, and paths do not configure keys). The same `literature-kit status` output lists them:
 
-It reports configuration and key presence without making an API request and never prints values. Keys come from environment variables — `OPENALEX_API_KEY` (OpenAlex), `SEMANTIC_SCHOLAR_API_KEY` (Semantic Scholar), `CORE_API_KEY` (CORE) — or from `[papers.openalex]`, `[papers.semantic-scholar]`, `[papers.core]` (`api_key`) in the `literature-kit.local.toml` file selected above. Environment values override the file. Europe PMC requires no key. For Firecrawl Research (optional companion), verify authentication with `firecrawl status` (or `npx firecrawl-cli status`, uses `FIRECRAWL_API_KEY`). When not pre-installed on `PATH`, it can be run via `npx firecrawl-cli` or installed with `npm install -g firecrawl-cli`.
+It reports configuration and key presence without making an API request and never prints values. Keys come from environment variables — `OPENALEX_API_KEY` (OpenAlex), `SEMANTIC_SCHOLAR_API_KEY` (Semantic Scholar), `CORE_API_KEY` (CORE) — or from `[papers.openalex]`, `[papers.semantic-scholar]`, `[papers.core]` (`api_key`) in the `literature-kit.local.toml` file selected above. Environment values override the file. Europe PMC requires no key.
 
 Never print key values or put them in command arguments, reports, prompts, or shared repository files. Cloud agents need their own secrets configured; installing this skill supplies none.
 
@@ -41,32 +41,8 @@ Read `docs/papers-api.md` in the literature-kit repository for detailed command 
 | Broad interdisciplinary discovery or structured filters | `openalex` | `--filter` is OpenAlex-only; content links are not downloaded automatically |
 | Relevance search or related papers | `semantic-scholar` | Search here is not its bulk Boolean API; recommendations default to a recent-paper pool |
 | Repository coverage or available work text | `core` | Multiple deposits/versions can describe one paper; work IDs differ from output IDs |
-| Semantic HyDE discovery or in-body claim Q&A | `firecrawl research` | HyDE semantic retrieval across ~43M abstracts (PubMed/bioRxiv/medRxiv/arXiv), intent citation graph, and in-body passage verification; authenticated via `FIRECRAWL_API_KEY` |
 
 Choose complementary providers for the question; do not run every provider automatically. For a known paper, prefer identifier lookup over another discovery search.
-
-## Upstream semantic discovery & passage verification (Firecrawl Research)
-
-When natural-language semantic discovery, intent-guided citation expansion, or in-body claim verification is needed before pulling full texts, use the companion CLI `firecrawl research` (or `npx firecrawl-cli research`, authenticated via `FIRECRAWL_API_KEY`). If Firecrawl is not available in the environment, use the standard `literature-kit` routes directly:
-
-- **HyDE Semantic Search** (for conceptual questions where exact keywords vary):
-  ```bash
-  firecrawl research search-papers "<natural language question>" --limit 20
-  ```
-- **Intent-Directed Citation Graph Expansion** (expands from seed papers filtered by research intent):
-  ```bash
-  firecrawl research related-papers <seedIds...> --intent "<specific experimental or biological intent>"
-  ```
-- **Passage-Level Q&A Extraction** (extract in-body full-text passages to verify specific parameters or claims before full retrieval; supports connector-evidence logging):
-  ```bash
-  firecrawl research read-paper <paperId> --question "What was the incubation time/concentration?"
-  ```
-
-### Bridge to `literature-kit`
-Once relevant papers are identified from Firecrawl hits (`pmid:`, `pmcid:`, or `doi:`):
-1. Resolve canonical metadata and concepts with `literature-kit lookup --provider <openalex|europe-pmc> --id <ID>`.
-2. Retrieve available open-access JATS XML or supplements with `literature-kit fulltext` / `supplements`.
-3. Follow the active project's search logging (for example a Markdown log) and durable artifact retention policies.
 
 ## Search, reconcile, retrieve
 
