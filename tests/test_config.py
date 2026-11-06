@@ -73,7 +73,6 @@ def test_non_utf8_config_is_a_config_error(tmp_path, monkeypatch):
     from literature_kit.config import ConfigError
     _clear(monkeypatch)
     bad = tmp_path / "bad.toml"
-    bad.write_bytes(b"scratch_dir = 'ÿ'
-")
+    bad.write_bytes(bytes([0xff]) + b" = 1")
     with pytest.raises(ConfigError, match="invalid TOML"):
         load_paths(bad)
