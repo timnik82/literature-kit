@@ -11,6 +11,19 @@ def test_status_without_network(capsys):
     assert set(current['providers']) == {'openalex', 'semantic-scholar', 'core', 'europe-pmc'}
 
 
+def test_packaging_metadata_is_complete_and_unduplicated():
+    import tomllib
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    project = tomllib.loads((root / 'pyproject.toml').read_text(encoding='utf-8'))['project']
+    assert project['license'] == 'MIT'
+    assert project['readme'] == 'README.md'
+    assert project['authors']
+    assert project['urls']['Repository'].endswith('timnik82/literature-kit')
+    assert 'optional-dependencies' not in project
+    assert (root / 'LICENSE').is_file()
+
+
 def test_docs_do_not_repeat_fixed_core_301_limitation():
     from pathlib import Path
     root = Path(__file__).resolve().parents[1]
