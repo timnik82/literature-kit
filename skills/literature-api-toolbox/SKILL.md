@@ -38,7 +38,7 @@ Read `docs/papers-api.md` in the literature-kit repository for detailed command 
 Use the tools together, cheapest and most specific step first. Firecrawl Research is an optional companion for semantic discovery and passage checks (`FIRECRAWL_API_KEY`; check with `firecrawl --status`); its own documentation and skills cover its details. If it is unavailable, skip its steps and use `literature-kit` routes directly.
 
 1. **Known paper:** go straight to step 5.
-2. **Discover.** Concept questions where wording varies: `firecrawl research search-papers "<question>" --limit 20`, with several framings. Its index is about 90 % biomedical, so for physics, chemistry, materials or engineering start with a broad semantic connector instead (see [Other connectors](#other-connectors)). Exact terms, Boolean queries or structured filters: `literature-kit search` (see the routes below).
+2. **Discover.** Concept questions where wording varies: `firecrawl research search-papers "<question>" --limit 20`, with several framings. Firecrawl Research is mostly biomedical, so for physics, chemistry, materials or engineering start with a broad semantic connector instead (see [Other connectors](#other-connectors)). Exact terms, Boolean queries or structured filters: `literature-kit search` (see the routes below).
 3. **Expand** from your strongest hits, only if needed: `firecrawl research related-papers <seedIds...> --intent "<specific intent>"`, or `literature-kit recommend --provider semantic-scholar --id <seed>`. A recommendation can return 404 or nothing for a valid DOI, and it drifts in niche fields: check the first few results before reading more.
 4. **Check before fetching.** Confirm that a candidate really reports what you need: `firecrawl research read-paper <paperId> --question "<specific question>"`. Drop a candidate only when the evidence shows it does not qualify. A missing or inconclusive passage means unverified, not rejected: keep it and check another source.
 5. **Resolve** the record: `literature-kit lookup --provider <openalex|europe-pmc> --id <ID>`, using the `pmid:`, `pmcid:` or `doi:` from the hit. For an arXiv-only hit: `literature-kit lookup --provider semantic-scholar --id ARXIV:<id>`. `literature-kit` does not report retraction status, so check it separately before citing (see [Other connectors](#other-connectors)).
@@ -64,7 +64,7 @@ A session may also offer scholarly and web search connectors. Use the ones avail
 |---|---|---|
 | Semantic discovery outside biomedicine | A scholarly search taking a plain question (for example SciSpace) | Duplicate records; patents appear among papers |
 | Passages, tables, conference abstracts and accepted manuscripts | A web search that returns page text (for example Exa or Tavily) | Vendor pages; confirm the identity of a paper with `lookup` |
-| Retraction status and citing statements | scite `verify_papers`, or `search_literature` with `dois` | Keep `limit` near 3: full citation payloads can overflow the context |
+| Retraction status and citing statements | scite `verify_papers`, or `search_literature` with `dois` | Keep `limit` near 3 and send a few DOIs per call, because full citation payloads can overflow the context. Treat any DOI with no returned status as unverified |
 | Biomedical records | PubMed, Europe PMC, Firecrawl Research | Few useful hits outside life sciences |
 
 For a new field, try one question on two or three connectors and keep those that return on-topic papers. Add any connector search to the project's log.
@@ -131,7 +131,7 @@ For a PMC article whose website PDF route fails, its official public dataset can
 
 ## Handle failures and finish
 
-CLI network calls emit JSON and save a unique scratch audit (`saved_to`, `audit_saved`, exact requests, raw responses). Check exit status, `error`, and audit persistence before treating a run as complete; retained pages from a failed run are partial. In PowerShell, parse the output with `ConvertFrom-Json -AsHashTable`, because provider records can hold keys that differ only by case. Returned DOI/PDF links need identity checks before adoption. Scratch audit paths are not durable catalogue entries: retain adopted outputs under project rules.
+CLI network calls emit JSON and save a unique scratch audit (`saved_to`, `audit_saved`, exact requests, raw responses). Check exit status, `error`, and audit persistence before treating a run as complete; retained pages from a failed run are partial. Provider records can hold keys that differ only by case, so plain `ConvertFrom-Json` can fail. In PowerShell 6 or later, use `ConvertFrom-Json -AsHashtable`. Windows PowerShell 5.1 lacks that switch, so parse the output with Python there. Returned DOI/PDF links need identity checks before adoption. Scratch audit paths are not durable catalogue entries: retain adopted outputs under project rules.
 
 Pacing/retries are built in. Semantic Scholar requests are spaced 1.1 seconds apart in one process. Separate processes/agents sharing a key or IP must serialize work; do not assume their quotas are coordinated. Respect Retry-After/retry-later results rather than loop immediately. Existing account calls may consume quota/balance; large batches require the user's intended scope. No automatic top-up is provided.
 
