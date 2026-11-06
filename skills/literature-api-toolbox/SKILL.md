@@ -1,6 +1,6 @@
 ---
 name: literature-api-toolbox
-description: Use when an agent needs the shared literature-kit tools for scholarly discovery, DOI or PMID lookup, related-paper recommendations, or available Europe PMC article text and supplements.
+description: Use when an agent needs to find, check or retrieve scholarly papers efficiently, combining the shared literature-kit tools with Firecrawl Research in the right order for discovery, DOI or PMID lookup, related-paper expansion, in-body passage checks, and available Europe PMC article text and supplements.
 ---
 
 # Literature API toolbox
@@ -32,6 +32,18 @@ Never print key values or put them in command arguments, reports, prompts, or sh
 Read `docs/papers-api.md` in the literature-kit repository for detailed command limits and file guarantees. Use `literature-kit <operation> --help` for available arguments.
 
 > Compatibility note: older `LITKIT_*` / `LACAIXA_*` variables and `litkit.local.toml` / `lacaixa.local.toml` files are still read as fallbacks (`LITERATURE_KIT_*` wins).
+
+## Recommended order
+
+Use the tools together, cheapest and most specific step first. Firecrawl Research is an optional companion for semantic discovery and passage checks (`FIRECRAWL_API_KEY`; check with `firecrawl --status`); its own documentation and skills cover its details. If it is unavailable, skip its steps and use `literature-kit` routes directly.
+
+1. **Known paper:** go straight to step 5.
+2. **Discover.** Concept questions where wording varies: `firecrawl research search-papers "<question>" --limit 20`, with several framings. Exact terms, Boolean queries or structured filters: `literature-kit search` (see the routes below).
+3. **Expand** from your strongest hits, only if needed: `firecrawl research related-papers <seedIds...> --intent "<specific intent>"`, or `literature-kit recommend --provider semantic-scholar`.
+4. **Check before fetching.** Confirm that a candidate really reports what you need: `firecrawl research read-paper <paperId> --question "<specific question>"`. Drop candidates that fail here.
+5. **Resolve** the record: `literature-kit lookup --provider <openalex|europe-pmc> --id <ID>`, using the `pmid:`, `pmcid:` or `doi:` from the hit.
+6. **Retrieve** only what the question needs: `literature-kit fulltext --provider europe-pmc --id <PMCID>` or `supplements`.
+7. **Log** queries and adopted sources under the active project's rules.
 
 ## Choose the route
 

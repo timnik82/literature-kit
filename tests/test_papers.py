@@ -240,3 +240,47 @@ def test_core_work_detail_path_has_no_trailing_slash():
     client._fetch('/works/123', {})
     client._fetch('/search/works', {'q': 'x'})
     assert seen == ['/works/123', '/search/works/']
+
+
+def test_env_key_wins_over_badly_typed_file_value(tmp_path, monkeypatch, capsys):
+    from literature_kit.papers import main
+    config = tmp_path / 'keys.toml'
+    config.write_text('[papers.openalex]\napi_key=123\n', encoding='utf-8')
+    monkeypatch.setenv('LITERATURE_KIT_CONFIG', str(config))
+    monkeypatch.setenv('OPENALEX_API_KEY', 'env-key')
+    assert load_key('openalex') == 'env-key'
+    monkeypatch.delenv('OPENALEX_API_KEY')
+    monkeypatch.setenv('CORE_API_KEY', 'core-key')
+    assert main(['status']) == 0
+    providers = json.loads(capsys.readouterr().out)['providers']
+    assert providers['core']['configured'] is True
+    assert providers['openalex']['configured'] is False
+    assert 'must be a string' in providers['openalex']['error']
+
+
+@pytest.mark.parametrize('shape', ['Authorization: bearer shortkey1', 'BEARER   shortkey1',
+                                   '{"api_key": "shortkey1"}', 'X-API-Key: shortkey1',
+                                   'access_token=shortkey1', 'token: shortkey1'])
+def test_short_key_is_redacted_in_credential_shapes(shape, monkeypatch):
+    import literature_kit.papers as papers
+    monkeypatch.setenv('CORE_API_KEY', 'shortkey1')
+    assert 'shortkey1' not in papers._redacted_json({'error': shape})
+
+
+@pytest.mark.parametrize('prose', ['the key: Cell cycle regulators', 'key: Cells', 'monkey=cell', 'key=cellular'])
+def test_short_key_redaction_leaves_ordinary_text_alone(prose, monkeypatch):
+    import literature_kit.papers as papers
+    monkeypatch.setenv('CORE_API_KEY', 'cell')
+    assert json.loads(papers._redacted_json({'title': prose}))['title'] == prose
+
+
+def test_core_empty_work_id_is_reported_without_a_request():
+    client = Client('core', 'key', interval=0)
+    paths = []
+    def request(path, params):
+        paths.append(path)
+        return {'results': [{'id': '', 'doi': '10.1/example'}], 'totalHits': 1}
+    client.request = request
+    with pytest.raises(PaperError, match='no work id'):
+        client.lookup('10.1/example', fulltext=True)
+    assert all(not path.startswith('/works') for path in paths)

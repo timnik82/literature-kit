@@ -1,12 +1,11 @@
 [build-system]
-requires = ["setuptools>=77"]
+requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "literature-kit"
 dynamic = ["version"]
 description = "Project-independent scholarly literature tools: OpenAlex, Semantic Scholar, CORE and Europe PMC with saved audits."
-license = "MIT"
 readme = "README.md"
 authors = [{ name = "timnik82" }]
 requires-python = ">=3.11"
@@ -16,7 +15,7 @@ dependencies = []
 Repository = "https://github.com/timnik82/literature-kit"
 
 # Single source of truth for dev dependencies, installed by `uv sync`.
-# pip-only contributors: create a venv, `pip install -e .`, then `pip install pytest>=8`.
+# pip-only contributors: create a venv, `pip install -e .`, then `pip install 'pytest>=8'`.
 [dependency-groups]
 dev = ["pytest>=8"]
 

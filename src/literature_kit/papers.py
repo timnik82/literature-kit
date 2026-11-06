@@ -76,6 +76,9 @@ def load_key(provider: str) -> str:
         raise PaperError('Unknown paper provider')
     if provider == 'europe-pmc':
         return ''
+    env_key = os.environ.get(PROVIDERS[provider][1], '').strip()
+    if env_key:  # the environment always wins; an unused file value cannot block it
+        return env_key
     papers_table = _read_config(None)[0].get('papers', {})
     if not isinstance(papers_table, dict):
         raise ConfigError('[papers] in the config file must be a table')
@@ -85,8 +88,7 @@ def load_key(provider: str) -> str:
     file_key = table.get('api_key', '')
     if not isinstance(file_key, str):
         raise ConfigError(f'api_key in [papers.{provider}] in the config file must be a string')
-    key = os.environ.get(PROVIDERS[provider][1]) or file_key
-    return str(key).strip()
+    return file_key.strip()
 
 
 def doi_value(value: str) -> str:
@@ -302,7 +304,7 @@ class Client:
             if fulltext:
                 detailed = []
                 for record in records:
-                    if record.get('id') is None:
+                    if not record.get('id'):
                         raise PaperError('core: search result has no work id; cannot fetch full text')
                     detailed.append(self._fetch('/works/' + quote(str(record['id']), safe=''), {}))
                 records = detailed
@@ -340,9 +342,10 @@ def _redact_text(text, key, marker):
             continue
         if text == variant:
             return marker
-        text = text.replace(f'Bearer {variant}', marker)
-        text = re.sub(r'(?i)((?:api[-_]?key|key|authorization)\s*[:=]\s*["\']?)' + re.escape(variant),
-                      r'\g<1>' + marker, text)
+        value = re.escape(variant) + r'(?![\w-])'  # the key itself stays case-sensitive
+        text = re.sub(r'(?<![\w-])(?i:bearer)\s+' + value, lambda m: marker, text)
+        text = re.sub(r'(?<![\w-])((?i:x[-_]?api[-_]?key|api[-_]?key|access[-_]?token|token|key|authorization)'
+                      r'["\']?\s*[:=]\s*["\']?)' + value, lambda m: m.group(1) + marker, text)
         # A long random key appearing verbatim cannot be legitimate prose;
         # short keys are only redacted exactly or in delimited contexts so
         # ordinary words containing them survive.
@@ -380,13 +383,22 @@ def _redacted_json(result):
     return json.dumps(_redact_secrets(result, secrets), ensure_ascii=False, indent=2)
 
 
+def _provider_status(provider, spec):
+    """Status for one provider; a bad config entry for it does not hide the others."""
+    status = {'configured': not spec[1], 'requires_key': bool(spec[1]), 'environment_variable': spec[1]}
+    try:
+        status['configured'] = status['configured'] or bool(load_key(provider))
+    except ConfigError as exc:
+        status['error'] = str(exc)
+    return status
+
+
 def run(args):
     if args.paper_action == 'status':
         config = find_config_file()
         print(json.dumps({'config_file': str(config) if config else None,
                           'scratch_dir': str(load_paths().scratch_dir) if load_paths().scratch_dir else None,
-                          'providers': {p: {'configured': not v[1] or bool(load_key(p)), 'requires_key': bool(v[1]), 'environment_variable': v[1]}
-                                        for p, v in PROVIDERS.items()}}, indent=2))
+                          'providers': {p: _provider_status(p, v) for p, v in PROVIDERS.items()}}, indent=2))
         return 0
     client = None
     path = None
