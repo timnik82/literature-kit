@@ -69,6 +69,31 @@ A session may also offer scholarly and web search connectors. Use the ones avail
 
 For a new field, try one question on two or three connectors and keep those that return on-topic papers. Add any connector search to the project's log.
 
+## Fetch, file, convert and check
+
+Match the effort to how the paper will be used.
+
+**Before filing.** Compare the DOI, title and SHA-256 with the project's library. A repository copy can be a paper the library already holds under another name.
+
+**When a publisher blocks the download.** Scripted requests often get a bot page, so check for the `%PDF-` header and open the file to confirm its title. Try the PMC public dataset for PMC articles. Otherwise open the DOI link in the person's own Chrome, on an institutional network where possible, and let it save the file. A connected browser may be on another computer, so confirm the file arrived before closing the tab. Do not solve a CAPTCHA. If the article page is readable but the PDF is not, a web scraper can supply the text for reading, and the PDF can follow later.
+
+**Reading.** For a one-off question, read the PDF's text layer or its pages directly. Superscripts, minus signs and symbols can be damaged in the text layer, so check any number you use on the rendered page.
+
+**Converting.** Convert to Markdown only for papers kept in a library that will be searched or reused. Remove converter blocks that describe figures: their numbers are estimates, and their contents can be invented or swapped. Keep figure captions, and move them into the main text if the manuscript prints them after the references.
+
+**Checking a conversion.** Scale it to the use:
+
+| Use of the paper | Check |
+|---|---|
+| Background reading | A scripted damage and numeric sweep |
+| Kept in a library | The same sweep, plus page, table and caption checks |
+| Numbers will be quoted | Those passages and tables compared with the rendered page |
+| Central to a decision or a whole batch of quotes | A full agent check, one paper per agent |
+
+A full agent check of one paper can cost about 300,000 tokens, so scope it to the pages that matter. Run the agents read-only. Their findings are leads: look at the page yourself before recording a flag as fact, and give any correction a second reader.
+
+**Reading is the step that changes conclusions.** A verified conversion only protects the numbers. Compare each paper with the question at hand, and revise any lead that came from an abstract once the full text is read.
+
 ## Search, reconcile, retrieve
 
 1. Define the evidence needed: target population/model, intervention or phenomenon, measurement technique, and relevant dates. For experimental methods, distinguish live/in vitro/in vivo conditions and specific analytical modalities explicitly.
