@@ -1,0 +1,15 @@
+literature-kit.local.toml
+litkit.local.toml
+lacaixa.local.toml
+.env
+.env.*
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.DS_Store
+Thumbs.db
