@@ -76,9 +76,19 @@ def load_key(provider: str) -> str:
         raise PaperError('Unknown paper provider')
     if provider == 'europe-pmc':
         return ''
-    table = _read_config(None)[0].get('papers', {}).get(provider, {})
-    key = os.environ.get(PROVIDERS[provider][1]) or table.get('api_key', '')
-    return str(key).strip()
+    env_key = os.environ.get(PROVIDERS[provider][1], '').strip()
+    if env_key:  # the environment always wins; an unused file value cannot block it
+        return env_key
+    papers_table = _read_config(None)[0].get('papers', {})
+    if not isinstance(papers_table, dict):
+        raise ConfigError('[papers] in the config file must be a table')
+    table = papers_table.get(provider, {})
+    if not isinstance(table, dict):
+        raise ConfigError(f'[papers.{provider}] in the config file must be a table')
+    file_key = table.get('api_key', '')
+    if not isinstance(file_key, str):
+        raise ConfigError(f'api_key in [papers.{provider}] in the config file must be a string')
+    return file_key.strip()
 
 
 def doi_value(value: str) -> str:
@@ -228,11 +238,8 @@ class Client:
 
     def snapshot(self, result):
         """Detach nested audit data and redact provider-echoed credentials."""
-        serialized = json.dumps(result, ensure_ascii=False)
-        if self.key:
-            encoded_key = json.dumps(self.key, ensure_ascii=False)[1:-1]
-            serialized = serialized.replace(encoded_key, '[REDACTED]')
-        return json.loads(serialized)
+        detached = json.loads(json.dumps(result, ensure_ascii=False))
+        return _redact_secrets(detached, {self.key: '[REDACTED]'} if self.key else {})
 
     def search(self, query: str, limit: int = 20, *, filter_value: str | None = None):
         if not query.strip() or not 1 <= limit <= 1000:
@@ -295,7 +302,12 @@ class Client:
             candidates = self._fetch('/search/works', {'q': f'doi:"{value}"', 'limit': 100})
             records = [r for r in candidates.get('results', []) if doi_value(r.get('doi') or '').lower() == value.lower()]
             if fulltext:
-                records = [self._fetch('/works/' + quote(str(r['id']), safe=''), {}) for r in records]
+                detailed = []
+                for record in records:
+                    if not record.get('id'):
+                        raise PaperError('core: search result has no work id; cannot fetch full text')
+                    detailed.append(self._fetch('/works/' + quote(str(record['id']), safe=''), {}))
+                records = detailed
         else:
             if not value.isdigit():
                 raise PaperError('CORE lookup accepts a DOI or numeric CORE work ID')
@@ -322,18 +334,63 @@ class Client:
         return self._result('recommend', identifier, data.get('recommendedPapers', []))
 
 
+def _redact_text(text, key, marker):
+    if text == key:
+        return marker
+    for variant in {key, json.dumps(key, ensure_ascii=False)[1:-1], json.dumps(key)[1:-1]}:
+        if not variant:
+            continue
+        if text == variant:
+            return marker
+        value = re.escape(variant) + r'(?![\w-])'  # the key itself stays case-sensitive
+        text = re.sub(r'(?<![\w-])(?i:bearer)\s+' + value, lambda m: marker, text)
+        text = re.sub(r'(?<![\w-])((?i:x[-_]?api[-_]?key|api[-_]?key|access[-_]?token|token|key|authorization)'
+                      r'["\']?\s*[:=]\s*["\']?)' + value, lambda m: m.group(1) + marker, text)
+        # A long random key appearing verbatim cannot be legitimate prose;
+        # short keys are only redacted exactly or in delimited contexts so
+        # ordinary words containing them survive.
+        if len(variant) >= 16:
+            text = text.replace(variant, marker)
+    return text
+
+
+def _redact_secrets(obj, secrets):
+    """Copy ``obj`` replacing exact/delimited occurrences of each key."""
+    if isinstance(obj, dict):
+        return {_redact_secrets(k, secrets): _redact_secrets(v, secrets) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_redact_secrets(v, secrets) for v in obj]
+    if isinstance(obj, tuple):
+        return [_redact_secrets(v, secrets) for v in obj]
+    if isinstance(obj, str):
+        for key, marker in secrets.items():
+            if key:
+                obj = _redact_text(obj, key, marker)
+        return obj
+    return obj
+
+
 def _redacted_json(result):
     """Serialize a CLI result with any configured API key value replaced, so a key can never reach stdout or an audit file."""
-    text = json.dumps(result, ensure_ascii=False, indent=2)
+    secrets = {}
     for provider in PROVIDERS:
         try:
             key = load_key(provider)
         except Exception:
             continue
         if key:
-            for variant in {key, json.dumps(key, ensure_ascii=False)[1:-1], json.dumps(key)[1:-1]}:
-                text = text.replace(variant, '[redacted]')
-    return text
+            secrets[key] = '[redacted]'
+    return json.dumps(_redact_secrets(result, secrets), ensure_ascii=False, indent=2)
+
+
+def _provider_status(provider, spec):
+    """Status for one provider; a bad config entry for it does not hide the others."""
+    status = {'configured': not spec[1], 'requires_key': bool(spec[1]), 'environment_variable': spec[1]}
+    try:
+        status['configured'] = status['configured'] or bool(load_key(provider))
+    except ConfigError as exc:
+        status['error'] = str(exc)
+    return status
 
 
 def run(args):
@@ -341,8 +398,7 @@ def run(args):
         config = find_config_file()
         print(json.dumps({'config_file': str(config) if config else None,
                           'scratch_dir': str(load_paths().scratch_dir) if load_paths().scratch_dir else None,
-                          'providers': {p: {'configured': not v[1] or bool(load_key(p)), 'requires_key': bool(v[1]), 'environment_variable': v[1]}
-                                        for p, v in PROVIDERS.items()}}, indent=2))
+                          'providers': {p: _provider_status(p, v) for p, v in PROVIDERS.items()}}, indent=2))
         return 0
     client = None
     path = None

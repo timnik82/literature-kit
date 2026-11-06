@@ -41,6 +41,20 @@ def test_cursor_paging():
     assert result['papers'][0]['title'] == 'Cells'
 
 
+def test_repeated_cursor_stops_without_duplicates():
+    c = client()
+    calls = []
+    def request(path, params):
+        calls.append(dict(params))
+        return {'hitCount': 100, 'nextCursorMark': 'SAME',
+                'resultList': {'result': [record()]}}
+    c.request = request
+    result = c.search('TITLE:Cells', 5)
+    # First page advances '*' -> 'SAME'; the repeated 'SAME' must stop paging.
+    assert len(calls) == 2
+    assert len(result['papers']) == 2
+
+
 @pytest.mark.parametrize('identifier,query', [
     ('PMC123', 'PMCID:PMC123'), ('PMCID:PMC123', 'PMCID:PMC123'),
     ('PMID:123', 'EXT_ID:123 AND SRC:MED'), ('123', 'EXT_ID:123 AND SRC:MED'),
@@ -181,3 +195,9 @@ def test_validate_xml_rejects_entity_declarations_and_nested_ids():
     assert validate_xml(nested, 'PMC1')['format'] == 'JATS XML'
     with pytest.raises(PaperError, match='requested PMCID'):
         validate_xml(nested, 'PMC2')
+    padded = (b'<?xml version="1.0"?>' + b'<!--' + b'x' * 70000 + b'-->'
+              b'<!DOCTYPE article [<!ENTITY a "expanded">]>'
+              b'<article><front><article-meta><article-id pub-id-type="pmc">1</article-id></article-meta></front>'
+              b'<body><p>&a;</p></body></article>')
+    with pytest.raises(PaperError, match='DTD'):
+        validate_xml(padded, 'PMC1')

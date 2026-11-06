@@ -38,7 +38,7 @@ def search(client, query, limit, filter_value=None):
         batch = (data.get('resultList') or {}).get('result') or []
         records.extend(batch[:limit-len(records)])
         next_cursor = data.get('nextCursorMark')
-        if not batch or len(records) >= data.get('hitCount', 0) or not next_cursor or next_cursor in seen:
+        if not batch or len(records) >= data.get('hitCount', 0) or not next_cursor or next_cursor == cursor or next_cursor in seen:
             break
         seen.add(cursor)
         cursor = next_cursor
@@ -66,7 +66,7 @@ def lookup(client, identifier):
     if count != 1 or len(records) != 1:
         raise PaperError('No unique Europe PMC match; use an exact PMID or PMCID')
     record = records[0]
-    if query.startswith('PMCID:') and record.get('pmcid', '').upper() != pmc:
+    if query.startswith('PMCID:') and (record.get('pmcid') or '').upper() != pmc:
         raise PaperError('Europe PMC returned a mismatched PMCID')
     if query.startswith('EXT_ID:') and (str(record.get('id')) != pmid or record.get('source') != 'MED'):
         raise PaperError('Europe PMC returned a mismatched PMID')
@@ -76,7 +76,7 @@ def lookup(client, identifier):
 
 
 def validate_xml(data, pmcid):
-    if b'<!DOCTYPE' in data[:4096].upper() or b'<!ENTITY' in data[:65536].upper():
+    if re.search(br'<!DOCTYPE|<!ENTITY', data, flags=re.IGNORECASE):
         raise PaperError('Article XML contains a DTD or entity declaration; nothing saved')
     try:
         root = ET.fromstring(data)

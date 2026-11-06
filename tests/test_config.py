@@ -56,3 +56,23 @@ def test_explicit_missing_config_and_bad_scratch_type_are_reported(tmp_path, mon
     bad.write_text("scratch_dir = 5\n")
     with pytest.raises(ConfigError, match="string"):
         load_paths(bad)
+
+
+def test_invalid_toml_is_a_config_error(tmp_path, monkeypatch):
+    import pytest
+    from literature_kit.config import ConfigError
+    _clear(monkeypatch)
+    bad = tmp_path / "bad.toml"
+    bad.write_text("scratch_dir = \n")
+    with pytest.raises(ConfigError, match="invalid TOML"):
+        load_paths(bad)
+
+
+def test_non_utf8_config_is_a_config_error(tmp_path, monkeypatch):
+    import pytest
+    from literature_kit.config import ConfigError
+    _clear(monkeypatch)
+    bad = tmp_path / "bad.toml"
+    bad.write_bytes(bytes([0xff]) + b" = 1")
+    with pytest.raises(ConfigError, match="invalid TOML"):
+        load_paths(bad)

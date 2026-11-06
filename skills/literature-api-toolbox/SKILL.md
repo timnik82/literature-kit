@@ -1,6 +1,6 @@
 ---
 name: literature-api-toolbox
-description: Use when an agent needs the shared literature-kit tools or Firecrawl research index for scholarly discovery, DOI or PMID lookup, related-paper recommendations, in-body passage verification, or available Europe PMC article text and supplements.
+description: Use when an agent needs to find, check or retrieve scholarly papers efficiently with the shared literature-kit tools, in the right order, optionally combined with Firecrawl Research, for discovery, DOI or PMID lookup, related-paper expansion, in-body passage checks, and available Europe PMC article text and supplements.
 ---
 
 # Literature API toolbox
@@ -25,13 +25,25 @@ literature-kit status
 
 Separately from path routing, verify provider key presence (keys do **not** configure paths, and paths do not configure keys). The same `literature-kit status` output lists them:
 
-It reports configuration and key presence without making an API request and never prints values. Keys come from environment variables — `OPENALEX_API_KEY` (OpenAlex), `SEMANTIC_SCHOLAR_API_KEY` (Semantic Scholar), `CORE_API_KEY` (CORE) — or from `[papers.openalex]`, `[papers.semantic-scholar]`, `[papers.core]` (`api_key`) in the `literature-kit.local.toml` file selected above. Environment values override the file. Europe PMC requires no key. For Firecrawl Research (optional companion), verify authentication with `firecrawl status` (or `npx firecrawl-cli status`, uses `FIRECRAWL_API_KEY`). When not pre-installed on `PATH`, it can be run via `npx firecrawl-cli` or installed with `npm install -g firecrawl-cli`.
+It reports configuration and key presence without making an API request and never prints values. Keys come from environment variables — `OPENALEX_API_KEY` (OpenAlex), `SEMANTIC_SCHOLAR_API_KEY` (Semantic Scholar), `CORE_API_KEY` (CORE) — or from `[papers.openalex]`, `[papers.semantic-scholar]`, `[papers.core]` (`api_key`) in the `literature-kit.local.toml` file selected above. Environment values override the file. Europe PMC requires no key.
 
 Never print key values or put them in command arguments, reports, prompts, or shared repository files. Cloud agents need their own secrets configured; installing this skill supplies none.
 
 Read `docs/papers-api.md` in the literature-kit repository for detailed command limits and file guarantees. Use `literature-kit <operation> --help` for available arguments.
 
 > Compatibility note: older `LITKIT_*` / `LACAIXA_*` variables and `litkit.local.toml` / `lacaixa.local.toml` files are still read as fallbacks (`LITERATURE_KIT_*` wins).
+
+## Recommended order
+
+Use the tools together, cheapest and most specific step first. Firecrawl Research is an optional companion for semantic discovery and passage checks (`FIRECRAWL_API_KEY`; check with `firecrawl --status`); its own documentation and skills cover its details. If it is unavailable, skip its steps and use `literature-kit` routes directly.
+
+1. **Known paper:** go straight to step 5.
+2. **Discover.** Concept questions where wording varies: `firecrawl research search-papers "<question>" --limit 20`, with several framings. Exact terms, Boolean queries or structured filters: `literature-kit search` (see the routes below).
+3. **Expand** from your strongest hits, only if needed: `firecrawl research related-papers <seedIds...> --intent "<specific intent>"`, or `literature-kit recommend --provider semantic-scholar --id <seed>`.
+4. **Check before fetching.** Confirm that a candidate really reports what you need: `firecrawl research read-paper <paperId> --question "<specific question>"`. Drop a candidate only when the evidence shows it does not qualify. A missing or inconclusive passage means unverified, not rejected: keep it and check another source.
+5. **Resolve** the record: `literature-kit lookup --provider <openalex|europe-pmc> --id <ID>`, using the `pmid:`, `pmcid:` or `doi:` from the hit. For an arXiv-only hit: `literature-kit lookup --provider semantic-scholar --id ARXIV:<id>`.
+6. **Retrieve** only what the question needs: `literature-kit fulltext --provider europe-pmc --id <PMCID>` or `supplements`.
+7. **Log** queries and adopted sources under the active project's rules.
 
 ## Choose the route
 
@@ -41,32 +53,8 @@ Read `docs/papers-api.md` in the literature-kit repository for detailed command 
 | Broad interdisciplinary discovery or structured filters | `openalex` | `--filter` is OpenAlex-only; content links are not downloaded automatically |
 | Relevance search or related papers | `semantic-scholar` | Search here is not its bulk Boolean API; recommendations default to a recent-paper pool |
 | Repository coverage or available work text | `core` | Multiple deposits/versions can describe one paper; work IDs differ from output IDs |
-| Semantic HyDE discovery or in-body claim Q&A | `firecrawl research` | HyDE semantic retrieval across ~43M abstracts (PubMed/bioRxiv/medRxiv/arXiv), intent citation graph, and in-body passage verification; authenticated via `FIRECRAWL_API_KEY` |
 
 Choose complementary providers for the question; do not run every provider automatically. For a known paper, prefer identifier lookup over another discovery search.
-
-## Upstream semantic discovery & passage verification (Firecrawl Research)
-
-When natural-language semantic discovery, intent-guided citation expansion, or in-body claim verification is needed before pulling full texts, use the companion CLI `firecrawl research` (or `npx firecrawl-cli research`, authenticated via `FIRECRAWL_API_KEY`). If Firecrawl is not available in the environment, use the standard `literature-kit` routes directly:
-
-- **HyDE Semantic Search** (for conceptual questions where exact keywords vary):
-  ```bash
-  firecrawl research search-papers "<natural language question>" --limit 20
-  ```
-- **Intent-Directed Citation Graph Expansion** (expands from seed papers filtered by research intent):
-  ```bash
-  firecrawl research related-papers <seedIds...> --intent "<specific experimental or biological intent>"
-  ```
-- **Passage-Level Q&A Extraction** (extract in-body full-text passages to verify specific parameters or claims before full retrieval; supports connector-evidence logging):
-  ```bash
-  firecrawl research read-paper <paperId> --question "What was the incubation time/concentration?"
-  ```
-
-### Bridge to `literature-kit`
-Once relevant papers are identified from Firecrawl hits (`pmid:`, `pmcid:`, or `doi:`):
-1. Resolve canonical metadata and concepts with `literature-kit lookup --provider <openalex|europe-pmc> --id <ID>`.
-2. Retrieve available open-access JATS XML or supplements with `literature-kit fulltext` / `supplements`.
-3. Follow the active project's search logging (for example a Markdown log) and durable artifact retention policies.
 
 ## Search, reconcile, retrieve
 
@@ -95,6 +83,6 @@ CLI network calls emit JSON and save a unique scratch audit (`saved_to`, `audit_
 
 Pacing/retries are built in. Semantic Scholar requests are spaced 1.1 seconds apart in one process. Separate processes/agents sharing a key or IP must serialize work; do not assume their quotas are coordinated. Respect Retry-After/retry-later results rather than loop immediately. Existing account calls may consume quota/balance; large batches require the user's intended scope. No automatic top-up is provided.
 
-Observed limitation: CORE work-detail/full-text lookup may return HTTP 301 redirects; keep redirects rejected, report the failure, and use an independently authorized source route. Official OpenAlex bulk CLI is a separate, unwrapped route; do not imply it is implemented here.
+CORE work-detail/full-text lookup uses the canonical `/works/{id}` path (no trailing slash); redirects remain rejected on principle — report any redirect failure rather than following it. Official OpenAlex bulk CLI is a separate, unwrapped route; do not imply it is implemented here.
 
 Log each exact query, settings, and result in the active project's search catalogue or log, including failures, and deduplicate retained papers. Report what was inspected (metadata, abstract, full text, original PDF/figures), what remains unverified, and what new evidence actually adds. Follow local connector-passage logging and verification rules before citing claims.

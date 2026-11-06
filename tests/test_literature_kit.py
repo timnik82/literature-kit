@@ -11,6 +11,54 @@ def test_status_without_network(capsys):
     assert set(current['providers']) == {'openalex', 'semantic-scholar', 'core', 'europe-pmc'}
 
 
+def test_packaging_metadata_is_complete_and_unduplicated():
+    import tomllib
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    project = tomllib.loads((root / 'pyproject.toml').read_text(encoding='utf-8'))['project']
+    assert project['readme'] == 'README.md'
+    assert project['authors']
+    assert project['urls']['Repository'].endswith('timnik82/literature-kit')
+    assert 'optional-dependencies' not in project
+
+
+def test_docs_do_not_repeat_fixed_core_301_limitation():
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    for rel in ('docs/papers-api.md', 'skills/literature-api-toolbox/SKILL.md'):
+        text = (root / rel).read_text(encoding='utf-8')
+        flat = ' '.join(text.split())
+        assert 'HTTP 301' not in flat, rel
+        assert 'CORE full text remain untested' not in flat, rel
+
+
+def test_skill_front_matter_has_no_bare_colon():
+    from pathlib import Path
+    text = (Path(__file__).resolve().parents[1] / 'skills/literature-api-toolbox/SKILL.md').read_text(encoding='utf-8')
+    description = next(line for line in text.splitlines() if line.startswith('description:'))
+    assert ': ' not in description.removeprefix('description: ')
+
+
+def test_skill_describes_the_combined_tool_order():
+    from pathlib import Path
+    skill = (Path(__file__).resolve().parents[1] / 'skills/literature-api-toolbox/SKILL.md').read_text(encoding='utf-8')
+    assert skill.index('firecrawl research search-papers') < skill.index('firecrawl research read-paper')
+    assert skill.index('firecrawl research read-paper') < skill.index('literature-kit fulltext --provider')
+
+
+def test_python_m_status_and_import_is_side_effect_free():
+    import subprocess
+    import sys
+    imported = subprocess.run([sys.executable, '-c', 'import literature_kit.__main__'],
+                              capture_output=True, text=True)
+    assert imported.returncode == 0
+    assert imported.stdout == ''
+    ran = subprocess.run([sys.executable, '-m', 'literature_kit', 'status'],
+                         capture_output=True, text=True)
+    assert ran.returncode == 0
+    assert 'europe-pmc' in ran.stdout
+
+
 def test_help_exposes_direct_operations(capsys):
     with pytest.raises(SystemExit) as exc:
         main(['--help'])

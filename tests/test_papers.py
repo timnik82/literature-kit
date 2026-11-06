@@ -17,6 +17,21 @@ def test_key_env_overrides_config(tmp_path, monkeypatch):
     assert load_key('openalex') == 'file-key'
 
 
+@pytest.mark.parametrize('content', [
+    '[papers]\nopenalex = "oops"\n',
+    '[papers.openalex]\napi_key = 123\n',
+    'papers = "oops"\n',
+])
+def test_malformed_papers_config_is_actionable(tmp_path, monkeypatch, content):
+    from literature_kit.config import ConfigError
+    config = tmp_path / 'keys.toml'
+    config.write_text(content, encoding='utf-8')
+    monkeypatch.setenv('LITERATURE_KIT_CONFIG', str(config))
+    monkeypatch.delenv('OPENALEX_API_KEY', raising=False)
+    with pytest.raises(ConfigError):
+        load_key('openalex')
+
+
 def test_openalex_abstract_and_missing_fields():
     p = normalize('openalex', {'id': 'W1', 'abstract_inverted_index': {'cell': [1], 'A': [0]}})
     assert p['abstract'] == 'A cell'
@@ -147,6 +162,25 @@ def test_auth_in_header_not_url_and_response_redacted():
     assert 'private-key' not in json.dumps(client.lookup('W1'))
 
 
+def test_snapshot_redaction_preserves_key_substrings_in_prose():
+    client = Client('openalex', 'cell', interval=0)
+    client.request = lambda path, params: {'id': 'W1', 'title': 'cell biology cell',
+                                           'authorships': [], 'note': 'cell'}
+    result = client.lookup('W1')
+    assert result['papers'][0]['title'] == 'cell biology cell'
+    assert result['requests'][0]['response']['note'] == '[REDACTED]'
+
+
+def test_redacted_json_redacts_delimited_but_not_prose(monkeypatch):
+    import literature_kit.papers as papers
+    monkeypatch.setenv('CORE_API_KEY', 'secret-value')
+    text = papers._redacted_json({'error': 'failed; key=secret-value',
+                                  'title': 'secret-value in prose stays'})
+    assert 'key=secret-value' not in text
+    assert 'key=[redacted]' in text
+    assert 'secret-value in prose stays' in text
+
+
 def test_long_retry_after_stops_without_sleep(monkeypatch):
     client = Client('core', 'key', interval=0)
     def opener(req, timeout):
@@ -178,6 +212,27 @@ def test_semantic_doi_route_preserves_slash():
     assert calls == ['/graph/v1/paper/DOI:10.1038/nature14539']
 
 
+def test_core_fulltext_lookup_without_work_id_is_paper_error():
+    client = Client('core', 'secret', interval=0)
+    client.request = lambda path, params: {'results': [{'doi': '10.1/test', 'title': 'x'}]}
+    with pytest.raises(PaperError, match='no work id'):
+        client.lookup('10.1/test', fulltext=True)
+
+
+def test_cli_core_fulltext_without_work_id_emits_json(tmp_path, monkeypatch, capsys):
+    import literature_kit.papers as papers
+    from literature_kit.config import Paths
+    from literature_kit.papers import main
+    monkeypatch.setenv('CORE_API_KEY', 'secret-value')
+    monkeypatch.setattr(papers, 'load_paths', lambda: Paths(tmp_path))
+    monkeypatch.setattr(Client, 'request',
+                        lambda self, path, params: {'results': [{'doi': '10.1/test', 'title': 'x'}]})
+    assert main(['lookup', '--provider', 'core', '--id', '10.1/test', '--fulltext']) == 1
+    result = json.loads(capsys.readouterr().out)
+    assert 'no work id' in result['error']
+    assert result['audit_saved'] is True
+
+
 def test_core_work_detail_path_has_no_trailing_slash():
     client = Client('core', 'key', interval=0)
     seen = []
@@ -185,3 +240,47 @@ def test_core_work_detail_path_has_no_trailing_slash():
     client._fetch('/works/123', {})
     client._fetch('/search/works', {'q': 'x'})
     assert seen == ['/works/123', '/search/works/']
+
+
+def test_env_key_wins_over_badly_typed_file_value(tmp_path, monkeypatch, capsys):
+    from literature_kit.papers import main
+    config = tmp_path / 'keys.toml'
+    config.write_text('[papers.openalex]\napi_key=123\n', encoding='utf-8')
+    monkeypatch.setenv('LITERATURE_KIT_CONFIG', str(config))
+    monkeypatch.setenv('OPENALEX_API_KEY', 'env-key')
+    assert load_key('openalex') == 'env-key'
+    monkeypatch.delenv('OPENALEX_API_KEY')
+    monkeypatch.setenv('CORE_API_KEY', 'core-key')
+    assert main(['status']) == 0
+    providers = json.loads(capsys.readouterr().out)['providers']
+    assert providers['core']['configured'] is True
+    assert providers['openalex']['configured'] is False
+    assert 'must be a string' in providers['openalex']['error']
+
+
+@pytest.mark.parametrize('shape', ['Authorization: bearer shortkey1', 'BEARER   shortkey1',
+                                   '{"api_key": "shortkey1"}', 'X-API-Key: shortkey1',
+                                   'access_token=shortkey1', 'token: shortkey1'])
+def test_short_key_is_redacted_in_credential_shapes(shape, monkeypatch):
+    import literature_kit.papers as papers
+    monkeypatch.setenv('CORE_API_KEY', 'shortkey1')
+    assert 'shortkey1' not in papers._redacted_json({'error': shape})
+
+
+@pytest.mark.parametrize('prose', ['the key: Cell cycle regulators', 'key: Cells', 'monkey=cell', 'key=cellular'])
+def test_short_key_redaction_leaves_ordinary_text_alone(prose, monkeypatch):
+    import literature_kit.papers as papers
+    monkeypatch.setenv('CORE_API_KEY', 'cell')
+    assert json.loads(papers._redacted_json({'title': prose}))['title'] == prose
+
+
+def test_core_empty_work_id_is_reported_without_a_request():
+    client = Client('core', 'key', interval=0)
+    paths = []
+    def request(path, params):
+        paths.append(path)
+        return {'results': [{'id': '', 'doi': '10.1/example'}], 'totalHits': 1}
+    client.request = request
+    with pytest.raises(PaperError, match='no work id'):
+        client.lookup('10.1/example', fulltext=True)
+    assert all(not path.startswith('/works') for path in paths)
