@@ -303,7 +303,12 @@ class Client:
             candidates = self._fetch('/search/works', {'q': f'doi:"{value}"', 'limit': 100})
             records = [r for r in candidates.get('results', []) if doi_value(r.get('doi') or '').lower() == value.lower()]
             if fulltext:
-                records = [self._fetch('/works/' + quote(str(r['id']), safe=''), {}) for r in records]
+                detailed = []
+                for record in records:
+                    if record.get('id') is None:
+                        raise PaperError('core: search result has no work id; cannot fetch full text')
+                    detailed.append(self._fetch('/works/' + quote(str(record['id']), safe=''), {}))
+                records = detailed
         else:
             if not value.isdigit():
                 raise PaperError('CORE lookup accepts a DOI or numeric CORE work ID')

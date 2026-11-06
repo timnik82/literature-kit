@@ -193,6 +193,27 @@ def test_semantic_doi_route_preserves_slash():
     assert calls == ['/graph/v1/paper/DOI:10.1038/nature14539']
 
 
+def test_core_fulltext_lookup_without_work_id_is_paper_error():
+    client = Client('core', 'secret', interval=0)
+    client.request = lambda path, params: {'results': [{'doi': '10.1/test', 'title': 'x'}]}
+    with pytest.raises(PaperError, match='no work id'):
+        client.lookup('10.1/test', fulltext=True)
+
+
+def test_cli_core_fulltext_without_work_id_emits_json(tmp_path, monkeypatch, capsys):
+    import literature_kit.papers as papers
+    from literature_kit.config import Paths
+    from literature_kit.papers import main
+    monkeypatch.setenv('CORE_API_KEY', 'secret-value')
+    monkeypatch.setattr(papers, 'load_paths', lambda: Paths(tmp_path))
+    monkeypatch.setattr(Client, 'request',
+                        lambda self, path, params: {'results': [{'doi': '10.1/test', 'title': 'x'}]})
+    assert main(['lookup', '--provider', 'core', '--id', '10.1/test', '--fulltext']) == 1
+    result = json.loads(capsys.readouterr().out)
+    assert 'no work id' in result['error']
+    assert result['audit_saved'] is True
+
+
 def test_core_work_detail_path_has_no_trailing_slash():
     client = Client('core', 'key', interval=0)
     seen = []

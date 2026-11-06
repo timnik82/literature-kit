@@ -66,7 +66,7 @@ def lookup(client, identifier):
     if count != 1 or len(records) != 1:
         raise PaperError('No unique Europe PMC match; use an exact PMID or PMCID')
     record = records[0]
-    if query.startswith('PMCID:') and record.get('pmcid', '').upper() != pmc:
+    if query.startswith('PMCID:') and (record.get('pmcid') or '').upper() != pmc:
         raise PaperError('Europe PMC returned a mismatched PMCID')
     if query.startswith('EXT_ID:') and (str(record.get('id')) != pmid or record.get('source') != 'MED'):
         raise PaperError('Europe PMC returned a mismatched PMID')
