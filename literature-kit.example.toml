@@ -1,0 +1,13 @@
+# Optional. Copy to literature-kit.local.toml (git-ignored) to hold provider keys.
+# Environment variables override these; keep keys out of Git and shared folders.
+
+# Where audits and downloads go. Prefer setting LITERATURE_KIT_SCRATCH_DIR per project instead.
+# scratch_dir = 'C:\Users\<you>\Coding\project-scratch'
+
+# Literature APIs: docs/papers-api.md. Europe PMC needs no key.
+# [papers.openalex]
+# api_key = ""
+# [papers.semantic-scholar]
+# api_key = ""
+# [papers.core]
+# api_key = ""

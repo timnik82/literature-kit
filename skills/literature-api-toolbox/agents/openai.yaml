@@ -1,0 +1,4 @@
+interface:
+  display_name: "Literature API Toolbox"
+  short_description: "Use the shared scholarly search and retrieval tools"
+  default_prompt: "Use $literature-api-toolbox to find and assess papers for this question, reusing existing searches and recording source verification limits."
