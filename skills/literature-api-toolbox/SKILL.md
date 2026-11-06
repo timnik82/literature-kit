@@ -38,10 +38,10 @@ Read `docs/papers-api.md` in the literature-kit repository for detailed command 
 Use the tools together, cheapest and most specific step first. Firecrawl Research is an optional companion for semantic discovery and passage checks (`FIRECRAWL_API_KEY`; check with `firecrawl --status`); its own documentation and skills cover its details. If it is unavailable, skip its steps and use `literature-kit` routes directly.
 
 1. **Known paper:** go straight to step 5.
-2. **Discover.** Concept questions where wording varies: `firecrawl research search-papers "<question>" --limit 20`, with several framings. Exact terms, Boolean queries or structured filters: `literature-kit search` (see the routes below).
-3. **Expand** from your strongest hits, only if needed: `firecrawl research related-papers <seedIds...> --intent "<specific intent>"`, or `literature-kit recommend --provider semantic-scholar --id <seed>`.
+2. **Discover.** Concept questions where wording varies: `firecrawl research search-papers "<question>" --limit 20`, with several framings. Its index is about 90 % biomedical, so for physics, chemistry, materials or engineering start with a broad semantic connector instead (see [Other connectors](#other-connectors)). Exact terms, Boolean queries or structured filters: `literature-kit search` (see the routes below).
+3. **Expand** from your strongest hits, only if needed: `firecrawl research related-papers <seedIds...> --intent "<specific intent>"`, or `literature-kit recommend --provider semantic-scholar --id <seed>`. A recommendation can return 404 or nothing for a valid DOI, and it drifts in niche fields: check the first few results before reading more.
 4. **Check before fetching.** Confirm that a candidate really reports what you need: `firecrawl research read-paper <paperId> --question "<specific question>"`. Drop a candidate only when the evidence shows it does not qualify. A missing or inconclusive passage means unverified, not rejected: keep it and check another source.
-5. **Resolve** the record: `literature-kit lookup --provider <openalex|europe-pmc> --id <ID>`, using the `pmid:`, `pmcid:` or `doi:` from the hit. For an arXiv-only hit: `literature-kit lookup --provider semantic-scholar --id ARXIV:<id>`.
+5. **Resolve** the record: `literature-kit lookup --provider <openalex|europe-pmc> --id <ID>`, using the `pmid:`, `pmcid:` or `doi:` from the hit. For an arXiv-only hit: `literature-kit lookup --provider semantic-scholar --id ARXIV:<id>`. `literature-kit` does not report retraction status, so check it separately before citing (see [Other connectors](#other-connectors)).
 6. **Retrieve** only what the question needs: `literature-kit fulltext --provider europe-pmc --id <PMCID>` or `supplements`.
 7. **Log** queries and adopted sources under the active project's rules.
 
@@ -56,6 +56,19 @@ Use the tools together, cheapest and most specific step first. Firecrawl Researc
 
 Choose complementary providers for the question; do not run every provider automatically. For a known paper, prefer identifier lookup over another discovery search.
 
+## Other connectors
+
+A session may also offer scholarly and web search connectors. Use the ones available; these are starting points, not a ranking for every field.
+
+| Need | Use | Watch for |
+|---|---|---|
+| Semantic discovery outside biomedicine | A scholarly search taking a plain question (for example SciSpace) | Duplicate records; patents appear among papers |
+| Passages, tables, conference abstracts and accepted manuscripts | A web search that returns page text (for example Exa or Tavily) | Vendor pages; confirm the identity of a paper with `lookup` |
+| Retraction status and citing statements | scite `verify_papers`, or `search_literature` with `dois` | Keep `limit` near 3: full citation payloads can overflow the context |
+| Biomedical records | PubMed, Europe PMC, Firecrawl Research | Few useful hits outside life sciences |
+
+For a new field, try one question on two or three connectors and keep those that return on-topic papers. Add any connector search to the project's log.
+
 ## Search, reconcile, retrieve
 
 1. Define the evidence needed: target population/model, intervention or phenomenon, measurement technique, and relevant dates. For experimental methods, distinguish live/in vitro/in vivo conditions and specific analytical modalities explicitly.
@@ -66,6 +79,7 @@ Choose complementary providers for the question; do not run every provider autom
 
 ```text
 literature-kit search --provider openalex --query "deep learning protein structure" --limit 20 --search-id SEARCH_ID
+literature-kit search --provider openalex --query "protein folding" --filter "title_and_abstract.search:structure,publication_year:2020-2026" --limit 20 --search-id SEARCH_ID
 literature-kit lookup --provider europe-pmc --id PMID:12345678
 literature-kit lookup --provider openalex --id 10.1038/s41586-020-2649-2
 literature-kit recommend --provider semantic-scholar --id 10.1038/s41586-020-2649-2 --limit 10 --search-id SEARCH_ID
@@ -73,13 +87,13 @@ literature-kit fulltext --provider europe-pmc --id PMC1234567
 literature-kit supplements --provider europe-pmc --id PMC1234567
 ```
 
-Replace `SEARCH_ID` with the project-allocated ID if applicable. CORE `lookup --fulltext` requests available work text; null/missing text is possible. Europe PMC downloads JATS XML and a supplement ZIP, not the main article PDF or Markdown. The ZIP can include article images; a downloaded archive is not a reviewed supplement. Use the project's PDF acquisition/conversion/validation procedure when original figures, tables, or central numerical claims are needed. Do not treat XML/OCR as verified against the original publication PDF.
+Replace `SEARCH_ID` with the project-allocated ID if applicable. OpenAlex search is lexical: keep `--query` to a few keywords, and use `title_and_abstract.search:` in `--filter` to require a term. Write year limits as a range. A `>` passed through a shell, such as a Python `subprocess` call with `shell=True`, redirects the output to a file and returns nothing. CORE `lookup --fulltext` requests available work text; null/missing text is possible. Europe PMC downloads JATS XML and a supplement ZIP, not the main article PDF or Markdown. The ZIP can include article images; a downloaded archive is not a reviewed supplement. Use the project's PDF acquisition/conversion/validation procedure when original figures, tables, or central numerical claims are needed. Do not treat XML/OCR as verified against the original publication PDF.
 
 For a PMC article whose website PDF route fails, its official public dataset can provide an independent PDF source. Consult the current [PMC dataset access documentation](https://pmc.ncbi.nlm.nih.gov/tools/pmcaws/) to resolve the article version and PDF location; validate PDF bytes, title/DOI and hash. Legacy PMC package routes were retired in 2026. This fallback is separate from the toolbox's implemented download commands.
 
 ## Handle failures and finish
 
-CLI network calls emit JSON and save a unique scratch audit (`saved_to`, `audit_saved`, exact requests, raw responses). Check exit status, `error`, and audit persistence before treating a run as complete; retained pages from a failed run are partial. Returned DOI/PDF links need identity checks before adoption. Scratch audit paths are not durable catalogue entries: retain adopted outputs under project rules.
+CLI network calls emit JSON and save a unique scratch audit (`saved_to`, `audit_saved`, exact requests, raw responses). Check exit status, `error`, and audit persistence before treating a run as complete; retained pages from a failed run are partial. In PowerShell, parse the output with `ConvertFrom-Json -AsHashTable`, because provider records can hold keys that differ only by case. Returned DOI/PDF links need identity checks before adoption. Scratch audit paths are not durable catalogue entries: retain adopted outputs under project rules.
 
 Pacing/retries are built in. Semantic Scholar requests are spaced 1.1 seconds apart in one process. Separate processes/agents sharing a key or IP must serialize work; do not assume their quotas are coordinated. Respect Retry-After/retry-later results rather than loop immediately. Existing account calls may consume quota/balance; large batches require the user's intended scope. No automatic top-up is provided.
 
