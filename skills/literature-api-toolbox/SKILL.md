@@ -9,7 +9,7 @@ Use the existing `literature-kit` command instead of creating another API client
 
 ## Locate the tool
 
-Run `literature-kit <operation> ...` from the project you are working in. It is installed once per computer from the `literature-kit` repository (`timnik82/literature-kit` on GitHub), with its `Scripts` folder on PATH. Where the checkout lives is a per-computer choice; the active project's own notes may say where. If the command is missing, install it from that repository (`uv sync` in the checkout, or `pip install -e .` in a venv) and add its `Scripts` folder to PATH. Do not write a new API client as a substitute, and do not assume installing this skill installs the command.
+Run `literature-kit <operation> ...` from the project you are working in. It is installed once per computer from the `literature-kit` repository (`timnik82/literature-kit` on GitHub), with the environment's `Scripts` (Windows) or `bin` (macOS/Linux) folder on PATH. Where the checkout lives is a per-computer choice; the active project's own notes may say where. If the command is missing, install it from that repository (`uv sync` in the checkout, or `pip install -e .` in a venv) and add that folder to PATH. Do not write a new API client as a substitute, and do not assume installing this skill installs the command.
 
 ## Setup check 1 — path routing (always do this)
 

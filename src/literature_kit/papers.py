@@ -20,7 +20,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
-from literature_kit.config import _read_config, find_config_file, load_paths
+from literature_kit.config import ConfigError, _read_config, find_config_file, load_paths
 
 PROVIDERS = {
     'openalex': ('https://api.openalex.org', 'OPENALEX_API_KEY', 0.11),
@@ -199,8 +199,8 @@ class Client:
         raise PaperError('Request failed')
 
     def _fetch(self, path, params):
-        if self.provider == 'core':
-            path = path.rstrip('/') + '/'
+        if self.provider == 'core' and path.rstrip('/') == '/search/works':
+            path = '/search/works/'
         audit = {'endpoint': self.base + path, 'parameters': dict(params),
                  'at_utc': datetime.now(timezone.utc).isoformat()}
         self.requests.append(audit)
@@ -322,6 +322,19 @@ class Client:
         return self._result('recommend', identifier, data.get('recommendedPapers', []))
 
 
+def _redacted_json(result):
+    """Serialize a CLI result with any configured API key value replaced, so a key can never reach stdout or an audit file."""
+    text = json.dumps(result, ensure_ascii=False, indent=2)
+    for provider in PROVIDERS:
+        try:
+            key = load_key(provider)
+        except Exception:
+            continue
+        if len(key) >= 6:
+            text = text.replace(key, '[redacted]')
+    return text
+
+
 def run(args):
     if args.paper_action == 'status':
         config = find_config_file()
@@ -358,18 +371,18 @@ def run(args):
         result = (client._result(args.paper_action, query, []) if client is not None else
                   {'provider': args.provider, 'operation': args.paper_action, 'query': query,
                    'at_utc': datetime.now(timezone.utc).isoformat(), 'papers': [], 'requests': []})
-        result['error'] = str(exc) if isinstance(exc, PaperError) else 'Command setup or output failed; check paths and permissions'
+        result['error'] = str(exc) if isinstance(exc, (PaperError, ConfigError)) else 'Command setup or output failed; check paths and permissions'
     result['search_id'] = args.search_id
     result['saved_to'] = str(path) if path else None
     result['audit_saved'] = path is not None
     if path is not None:
         try:
-            save_exclusive(path, json.dumps(result, ensure_ascii=False, indent=2).encode('utf-8'))
+            save_exclusive(path, _redacted_json(result).encode('utf-8'))
         except PaperError:
             result['audit_saved'] = False
             result['saved_to'] = None
             result['error'] = result.get('error', 'Command completed') + '; could not save audit file'
-    print(json.dumps(result, ensure_ascii=False, indent=2))
+    print(_redacted_json(result))
     return 1 if 'error' in result else 0
 
 

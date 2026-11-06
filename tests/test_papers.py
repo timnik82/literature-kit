@@ -109,7 +109,7 @@ def test_cli_saves_failed_search_without_leaking_key(tmp_path, monkeypatch, caps
     monkeypatch.setenv('CORE_API_KEY', 'secret-value')
     monkeypatch.setattr(papers, 'load_paths', lambda: Paths(tmp_path))
     def request(self, path, params):
-        raise PaperError('core: HTTP 401; check key, quota or query')
+        raise PaperError('core: HTTP 401; check key, quota or query; key=secret-value')
     monkeypatch.setattr(Client, 'request', request)
     assert main(['search', '--provider', 'core', '--query', 'protein']) == 1
     result = json.loads(capsys.readouterr().out)
@@ -174,3 +174,12 @@ def test_semantic_doi_route_preserves_slash():
     client.request = request
     client.lookup('10.1038/nature14539')
     assert calls == ['/graph/v1/paper/DOI:10.1038/nature14539']
+
+
+def test_core_work_detail_path_has_no_trailing_slash():
+    client = Client('core', 'key', interval=0)
+    seen = []
+    client.request = lambda path, params: seen.append(path) or {'results': [], 'id': 1}
+    client._fetch('/works/123', {})
+    client._fetch('/search/works', {'q': 'x'})
+    assert seen == ['/works/123', '/search/works/']

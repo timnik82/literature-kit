@@ -1,8 +1,8 @@
 # literature-kit
 
 Project-independent scholarly literature tools for agents and people: OpenAlex, Semantic Scholar, CORE and
-Europe PMC (search, identifier lookup, recommendations, available full text and supplements). Every network call
-saves an audit file in the active project's scratch folder. This repository holds code and the agent skill only;
+Europe PMC (search, identifier lookup, recommendations, available full text and supplements). Every network call made by the
+command saves an audit file in the active project's scratch folder (the result's `audit_saved` says whether saving worked). This repository holds code and the agent skill only;
 it contains nothing about any particular project.
 
 ## Install (once per computer)
@@ -11,7 +11,7 @@ it contains nothing about any particular project.
 uv sync --locked            # creates .venv; or: pip install -e . in a venv
 ```
 
-Put the environment's `Scripts` folder (`bin` on macOS/Linux) on PATH so `literature-kit` works in every project.
+Put the environment's `Scripts` folder (Windows) or `bin` folder (macOS/Linux) on PATH so `literature-kit` works in every project.
 Clone the repository anywhere you keep tools, install once per computer, and use the same command from every project.
 
 ## Use

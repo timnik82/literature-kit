@@ -31,13 +31,17 @@ def _env(*names: str) -> str | None:
     return None
 
 
+class ConfigError(RuntimeError):
+    """A configuration problem with an actionable message (shown to the user as is)."""
+
+
 @dataclass(frozen=True)
 class Paths:
     scratch_dir: Path | None
 
     def require_scratch(self) -> Path:
         if self.scratch_dir is None:
-            raise RuntimeError(
+            raise ConfigError(
                 "scratch_dir is not set: define LITERATURE_KIT_SCRATCH_DIR or scratch_dir in a config file"
             )
         return self.scratch_dir
@@ -69,6 +73,10 @@ def _as_path(value: str | None, base: Path) -> Path | None:
 def _read_config(config_file: Path | None) -> tuple[dict, Path]:
     if config_file is None:
         config_file = find_config_file()
+    if config_file is not None and not config_file.is_file() and _env("LITERATURE_KIT_CONFIG", "LITKIT_CONFIG", "LACAIXA_CONFIG"):
+        explicit = Path(_env("LITERATURE_KIT_CONFIG", "LITKIT_CONFIG", "LACAIXA_CONFIG")).expanduser().resolve()
+        if config_file == explicit:
+            raise ConfigError(f"config file not found: {config_file}")
     if config_file is not None and config_file.is_file():
         with config_file.open("rb") as fh:
             return tomllib.load(fh), config_file.resolve().parent
@@ -79,4 +87,7 @@ def load_paths(config_file: Path | None = None) -> Paths:
     values, base = _read_config(config_file)
     if env_value := _env("LITERATURE_KIT_SCRATCH_DIR", "LITKIT_SCRATCH_DIR", "LACAIXA_SCRATCH_DIR"):
         return Paths(scratch_dir=_as_path(env_value, Path.cwd()))
-    return Paths(scratch_dir=_as_path(values.get("scratch_dir"), base))
+    raw = values.get("scratch_dir")
+    if raw is not None and not isinstance(raw, str):
+        raise ConfigError("scratch_dir in the config file must be a string path")
+    return Paths(scratch_dir=_as_path(raw, base))

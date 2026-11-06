@@ -45,8 +45,8 @@ not a guaranteed provider quota. Coordinate processes sharing an IP.
 Run `literature-kit status` first. It prints the selected configuration path
 and whether each key is present, never its value. No API request is sent.
 
-Append these tables to that existing `literature-kit.local.toml` file (or the older `litkit.local.toml` / `lacaixa.local.toml`), substituting
-your keys locally. If a table already exists, edit its api_key entry rather
+Create `literature-kit.local.toml` from `literature-kit.example.toml` if you have none (the older `litkit.local.toml` / `lacaixa.local.toml`
+names are also read), then add these tables, substituting your keys locally. If a table already exists, edit its api_key entry rather
 than adding another table. Do not replace other entries in that file.
 
 ```toml

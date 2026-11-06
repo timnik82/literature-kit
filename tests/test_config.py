@@ -42,3 +42,17 @@ def test_config_found_in_parent_folder_by_any_name(tmp_path, monkeypatch):
     sub.mkdir(parents=True)
     monkeypatch.chdir(sub)
     assert load_paths().scratch_dir == scratch
+
+
+def test_explicit_missing_config_and_bad_scratch_type_are_reported(tmp_path, monkeypatch):
+    import pytest
+    from literature_kit.config import ConfigError
+    _clear(monkeypatch)
+    monkeypatch.setenv("LITERATURE_KIT_CONFIG", str(tmp_path / "nope.toml"))
+    with pytest.raises(ConfigError, match="not found"):
+        load_paths()
+    monkeypatch.delenv("LITERATURE_KIT_CONFIG")
+    bad = tmp_path / "bad.toml"
+    bad.write_text("scratch_dir = 5\n")
+    with pytest.raises(ConfigError, match="string"):
+        load_paths(bad)

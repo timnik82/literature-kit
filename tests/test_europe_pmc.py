@@ -169,3 +169,15 @@ def test_cli_rejects_download_outside_scratch(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(Client, 'download', download)
     assert main(['fulltext','--provider','europe-pmc','--id','PMC123','--out', str(tmp_path / 'outside')]) == 1
     assert 'inside' in json.loads(capsys.readouterr().out)['error']
+
+
+def test_validate_xml_rejects_entity_declarations_and_nested_ids():
+    from literature_kit.europe_pmc import validate_xml
+    bomb = b'<?xml version="1.0"?><!DOCTYPE article [<!ENTITY a "x">]><article><front/></article>'
+    with pytest.raises(PaperError, match='DTD'):
+        validate_xml(bomb, 'PMC1')
+    nested = (b'<article><front><article-meta><article-id pub-id-type="pmc">1</article-id></article-meta></front>'
+              b'<body><sub-article><front><article-meta><article-id pub-id-type="pmc">2</article-id></article-meta></front></sub-article></body></article>')
+    assert validate_xml(nested, 'PMC1')['format'] == 'JATS XML'
+    with pytest.raises(PaperError, match='requested PMCID'):
+        validate_xml(nested, 'PMC2')

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+from datetime import datetime, timezone
 import io
 import re
 import zipfile
@@ -75,6 +76,8 @@ def lookup(client, identifier):
 
 
 def validate_xml(data, pmcid):
+    if b'<!DOCTYPE' in data[:4096].upper() or b'<!ENTITY' in data[:65536].upper():
+        raise PaperError('Article XML contains a DTD or entity declaration; nothing saved')
     try:
         root = ET.fromstring(data)
     except ET.ParseError:
@@ -83,7 +86,8 @@ def validate_xml(data, pmcid):
     if local(root) != 'article':
         raise PaperError('Europe PMC response is not article XML; nothing saved')
     ids = []
-    for node in root.iter():
+    front = next((child for child in root if local(child) == 'front'), None)
+    for node in (front.iter() if front is not None else ()):
         if local(node) == 'article-id' and node.get('pub-id-type') in ('pmc', 'pmcid'):
             value = ''.join(node.itertext()).strip().upper()
             ids.append(value if value.startswith('PMC') else 'PMC'+value)
@@ -125,7 +129,7 @@ def download(client, identifier, kind, destination):
     if path.exists():
         raise PaperError('Download already exists; choose another scratch output folder')
     endpoint = '/'+pmcid+('/fullTextXML' if kind == 'fulltext' else '/supplementaryFiles')
-    audit = {'endpoint': client.base+endpoint, 'parameters': {}}
+    audit = {'endpoint': client.base+endpoint, 'parameters': {}, 'at_utc': datetime.now(timezone.utc).isoformat()}
     client.requests.append(audit)
     try:
         data = client.request_bytes(endpoint, {})
