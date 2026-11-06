@@ -112,7 +112,7 @@ rules; the scratch JSON is not a substitute for its catalogue/log.
 Searches page automatically up to `--limit` (1-1000); recommendations allow
 1-500. Provider coverage and pagination limits still apply. Results are not
 automatically merged across providers; use DOI and source IDs to reconcile.
-OpenAlex accepts its native `--filter`; CORE accepts its own query syntax. To require a term, use `title_and_abstract.search:<term>` in `--filter`. Write year limits as a range (`publication_year:2020-2026`), because a `>` passed through a shell can act as a redirect. Records carry no retraction status; check it with another source before citing.
+OpenAlex accepts its native `--filter`; CORE accepts its own query syntax. To require a term, use `title_and_abstract.search:<term>` in `--filter`. Write year limits as a range (`publication_year:2020-2026`), because a `>` passed through a shell can act as a redirect. Records carry no retraction status; check it with another source before citing. `fulltext` refuses XML that holds a DTD or entity declaration and saves nothing.
 Semantic Scholar search here is relevance search, not its bulk Boolean API.
 Recommendations use its single-seed endpoint and default recent-paper pool.
 

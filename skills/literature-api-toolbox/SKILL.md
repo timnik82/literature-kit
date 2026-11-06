@@ -87,10 +87,23 @@ Match the effort to how the paper will be used.
 |---|---|
 | Background reading | A scripted damage and numeric sweep |
 | Kept in a library | The same sweep, plus page, table and caption checks |
-| Numbers will be quoted | Those passages and tables compared with the rendered page |
+| Numbers will be quoted | A publisher-text cross-check where available, and those passages and tables compared with the rendered page |
 | Central to a decision or a whole batch of quotes | A full agent check, one paper per agent |
 
 A full agent check of one paper can cost about 300,000 tokens, so scope it to the pages that matter. Run the agents read-only. Their findings are leads: look at the page yourself before recording a flag as fact, and give any correction a second reader.
+
+**Cross-checking against publisher text.** For open-access papers, the publisher's own text is a second source that does not share OCR or PDF text-layer errors. Prefer, in order:
+
+1. JATS XML from `literature-kit fulltext --provider europe-pmc`. Some articles are refused because the file holds a DTD declaration; that is a safety guard, so move to the next source.
+2. Publisher HTML with its tags, for example `firecrawl scrape <url> --format html --only-main-content -o <file>`. Keep `<sup>` and `<sub>` when extracting text. Publishers can block scrapers, and a manuscript-only paper may have no HTML.
+3. Scraped Markdown, for reading only: it can flatten `10²¹` to `1021` and drop equations.
+
+Run two comparisons, because each misses what the other finds:
+
+- **Existence:** every number in the conversion must occur in the publisher text. This catches invented content such as figure tables, but misses a wrong number that also occurs elsewhere.
+- **In place:** align the two word sequences (for example with `difflib.SequenceMatcher`) and list numbers that differ at the same position. This catches garbled ranges and single-digit slips.
+
+Normalise superscripts, minus signs and LaTeX forms first, and remove citations. Expect a few false flags from equations and formatting, and settle every flag on the rendered PDF page. In a test on three papers, the in-place comparison caught 68 of 71 planted digit errors with at most 5 flags per paper, and found a garbled range the existence check missed; the existence check found an invented figure table that the in-place check missed. The PDF stays the version to cite, because the web text can differ from it.
 
 **Reading is the step that changes conclusions.** A verified conversion only protects the numbers. Compare each paper with the question at hand, and revise any lead that came from an abstract once the full text is read.
 
