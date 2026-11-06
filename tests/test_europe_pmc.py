@@ -41,6 +41,20 @@ def test_cursor_paging():
     assert result['papers'][0]['title'] == 'Cells'
 
 
+def test_repeated_cursor_stops_without_duplicates():
+    c = client()
+    calls = []
+    def request(path, params):
+        calls.append(dict(params))
+        return {'hitCount': 100, 'nextCursorMark': 'SAME',
+                'resultList': {'result': [record()]}}
+    c.request = request
+    result = c.search('TITLE:Cells', 5)
+    # First page advances '*' -> 'SAME'; the repeated 'SAME' must stop paging.
+    assert len(calls) == 2
+    assert len(result['papers']) == 2
+
+
 @pytest.mark.parametrize('identifier,query', [
     ('PMC123', 'PMCID:PMC123'), ('PMCID:PMC123', 'PMCID:PMC123'),
     ('PMID:123', 'EXT_ID:123 AND SRC:MED'), ('123', 'EXT_ID:123 AND SRC:MED'),

@@ -38,7 +38,7 @@ def search(client, query, limit, filter_value=None):
         batch = (data.get('resultList') or {}).get('result') or []
         records.extend(batch[:limit-len(records)])
         next_cursor = data.get('nextCursorMark')
-        if not batch or len(records) >= data.get('hitCount', 0) or not next_cursor or next_cursor in seen:
+        if not batch or len(records) >= data.get('hitCount', 0) or not next_cursor or next_cursor == cursor or next_cursor in seen:
             break
         seen.add(cursor)
         cursor = next_cursor
