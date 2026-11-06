@@ -76,8 +76,16 @@ def load_key(provider: str) -> str:
         raise PaperError('Unknown paper provider')
     if provider == 'europe-pmc':
         return ''
-    table = _read_config(None)[0].get('papers', {}).get(provider, {})
-    key = os.environ.get(PROVIDERS[provider][1]) or table.get('api_key', '')
+    papers_table = _read_config(None)[0].get('papers', {})
+    if not isinstance(papers_table, dict):
+        raise ConfigError('[papers] in the config file must be a table')
+    table = papers_table.get(provider, {})
+    if not isinstance(table, dict):
+        raise ConfigError(f'[papers.{provider}] in the config file must be a table')
+    file_key = table.get('api_key', '')
+    if not isinstance(file_key, str):
+        raise ConfigError(f'api_key in [papers.{provider}] in the config file must be a string')
+    key = os.environ.get(PROVIDERS[provider][1]) or file_key
     return str(key).strip()
 
 

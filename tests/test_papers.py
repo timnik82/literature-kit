@@ -17,6 +17,21 @@ def test_key_env_overrides_config(tmp_path, monkeypatch):
     assert load_key('openalex') == 'file-key'
 
 
+@pytest.mark.parametrize('content', [
+    '[papers]\nopenalex = "oops"\n',
+    '[papers.openalex]\napi_key = 123\n',
+    'papers = "oops"\n',
+])
+def test_malformed_papers_config_is_actionable(tmp_path, monkeypatch, content):
+    from literature_kit.config import ConfigError
+    config = tmp_path / 'keys.toml'
+    config.write_text(content, encoding='utf-8')
+    monkeypatch.setenv('LITERATURE_KIT_CONFIG', str(config))
+    monkeypatch.delenv('OPENALEX_API_KEY', raising=False)
+    with pytest.raises(ConfigError):
+        load_key('openalex')
+
+
 def test_openalex_abstract_and_missing_fields():
     p = normalize('openalex', {'id': 'W1', 'abstract_inverted_index': {'cell': [1], 'A': [0]}})
     assert p['abstract'] == 'A cell'
