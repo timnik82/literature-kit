@@ -11,6 +11,19 @@ def test_status_without_network(capsys):
     assert set(current['providers']) == {'openalex', 'semantic-scholar', 'core', 'europe-pmc'}
 
 
+def test_python_m_status_and_import_is_side_effect_free():
+    import subprocess
+    import sys
+    imported = subprocess.run([sys.executable, '-c', 'import literature_kit.__main__'],
+                              capture_output=True, text=True)
+    assert imported.returncode == 0
+    assert imported.stdout == ''
+    ran = subprocess.run([sys.executable, '-m', 'literature_kit', 'status'],
+                         capture_output=True, text=True)
+    assert ran.returncode == 0
+    assert 'europe-pmc' in ran.stdout
+
+
 def test_help_exposes_direct_operations(capsys):
     with pytest.raises(SystemExit) as exc:
         main(['--help'])

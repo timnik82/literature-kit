@@ -2,4 +2,5 @@ import sys
 
 from literature_kit.papers import main
 
-sys.exit(main())
+if __name__ == "__main__":
+    sys.exit(main())
