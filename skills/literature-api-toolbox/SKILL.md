@@ -1,6 +1,6 @@
 ---
 name: literature-api-toolbox
-description: Use when an agent needs to find, check or retrieve scholarly papers efficiently, combining the shared literature-kit tools with Firecrawl Research in the right order for discovery, DOI or PMID lookup, related-paper expansion, in-body passage checks, and available Europe PMC article text and supplements.
+description: Use when an agent needs to find, check or retrieve scholarly papers efficiently with the shared literature-kit tools, in the right order, optionally combined with Firecrawl Research: discovery, DOI or PMID lookup, related-paper expansion, in-body passage checks, and available Europe PMC article text and supplements.
 ---
 
 # Literature API toolbox
@@ -39,9 +39,9 @@ Use the tools together, cheapest and most specific step first. Firecrawl Researc
 
 1. **Known paper:** go straight to step 5.
 2. **Discover.** Concept questions where wording varies: `firecrawl research search-papers "<question>" --limit 20`, with several framings. Exact terms, Boolean queries or structured filters: `literature-kit search` (see the routes below).
-3. **Expand** from your strongest hits, only if needed: `firecrawl research related-papers <seedIds...> --intent "<specific intent>"`, or `literature-kit recommend --provider semantic-scholar`.
-4. **Check before fetching.** Confirm that a candidate really reports what you need: `firecrawl research read-paper <paperId> --question "<specific question>"`. Drop candidates that fail here.
-5. **Resolve** the record: `literature-kit lookup --provider <openalex|europe-pmc> --id <ID>`, using the `pmid:`, `pmcid:` or `doi:` from the hit.
+3. **Expand** from your strongest hits, only if needed: `firecrawl research related-papers <seedIds...> --intent "<specific intent>"`, or `literature-kit recommend --provider semantic-scholar --id <seed>`.
+4. **Check before fetching.** Confirm that a candidate really reports what you need: `firecrawl research read-paper <paperId> --question "<specific question>"`. Drop a candidate only when the evidence shows it does not qualify. A missing or inconclusive passage means unverified, not rejected: keep it and check another source.
+5. **Resolve** the record: `literature-kit lookup --provider <openalex|europe-pmc> --id <ID>`, using the `pmid:`, `pmcid:` or `doi:` from the hit. For an arXiv-only hit: `literature-kit lookup --provider semantic-scholar --id ARXIV:<id>`.
 6. **Retrieve** only what the question needs: `literature-kit fulltext --provider europe-pmc --id <PMCID>` or `supplements`.
 7. **Log** queries and adopted sources under the active project's rules.
 

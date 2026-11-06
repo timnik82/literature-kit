@@ -79,7 +79,10 @@ def _read_config(config_file: Path | None) -> tuple[dict, Path]:
             raise ConfigError(f"config file not found: {config_file}")
     if config_file is not None and config_file.is_file():
         with config_file.open("rb") as fh:
-            return tomllib.load(fh), config_file.resolve().parent
+            try:
+                return tomllib.load(fh), config_file.resolve().parent
+            except tomllib.TOMLDecodeError as exc:
+                raise ConfigError(f"invalid TOML in config file {config_file}: {exc}") from None
     return {}, Path.cwd()
 
 
