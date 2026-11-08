@@ -3,7 +3,7 @@
 `litkit` calls the official read-only OpenAlex, Semantic Scholar and
 CORE REST APIs, plus the keyless Europe PMC Articles REST API. The clients are importable as `literature_kit.papers.Client`.
 Python 3.11+; no additional dependencies. Install once (`uv sync` in the checkout, or `pip install -e .` in a venv)
-and put the venv's `Scripts` folder on PATH; then run `litkit ...`.
+and put the venv's `Scripts` (Windows) or `bin` (macOS/Linux) folder on PATH; then run `litkit ...`.
 
 ## Europe PMC (no key or extra package)
 
