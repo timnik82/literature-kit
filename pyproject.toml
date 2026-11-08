@@ -20,6 +20,8 @@ Repository = "https://github.com/timnik82/literature-kit"
 dev = ["pytest>=8"]
 
 [project.scripts]
+litkit = "literature_kit.papers:main"
+# Kept as an alias for existing installs and scripts.
 literature-kit = "literature_kit.papers:main"
 
 [tool.setuptools.dynamic]
