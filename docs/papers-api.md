@@ -1,19 +1,19 @@
 # Literature API tools for agents
 
-`literature-kit` calls the official read-only OpenAlex, Semantic Scholar and
+`litkit` calls the official read-only OpenAlex, Semantic Scholar and
 CORE REST APIs, plus the keyless Europe PMC Articles REST API. The clients are importable as `literature_kit.papers.Client`.
 Python 3.11+; no additional dependencies. Install once (`uv sync` in the checkout, or `pip install -e .` in a venv)
-and put the venv's `Scripts` folder on PATH; then run `literature-kit ...`.
+and put the venv's `Scripts` folder on PATH; then run `litkit ...`.
 
 ## Europe PMC (no key or extra package)
 
 ```text
-literature-kit search --provider europe-pmc --query '(biomarker AND therapy) AND OPEN_ACCESS:Y' --limit 20 --search-id SEARCH_ID
-literature-kit lookup --provider europe-pmc --id PMID:12345678
-literature-kit lookup --provider europe-pmc --id PMCID:PMC1234567
-literature-kit lookup --provider europe-pmc --id 10.1038/s41586-020-2649-2
-literature-kit fulltext --provider europe-pmc --id PMC1234567
-literature-kit supplements --provider europe-pmc --id PMC1234567
+litkit search --provider europe-pmc --query '(biomarker AND therapy) AND OPEN_ACCESS:Y' --limit 20 --search-id SEARCH_ID
+litkit lookup --provider europe-pmc --id PMID:12345678
+litkit lookup --provider europe-pmc --id PMCID:PMC1234567
+litkit lookup --provider europe-pmc --id 10.1038/s41586-020-2649-2
+litkit fulltext --provider europe-pmc --id PMC1234567
+litkit supplements --provider europe-pmc --id PMC1234567
 ```
 
 Search uses core-format responses and automatic cursor paging up to --limit.
@@ -46,7 +46,7 @@ not a guaranteed provider quota. Coordinate processes sharing an IP.
 
 ## Insert keys once on each machine
 
-Run `literature-kit status` first. It prints the selected configuration path
+Run `litkit status` first. It prints the selected configuration path
 and whether each key is present, never its value. No API request is sent.
 
 Create `literature-kit.local.toml` from `literature-kit.example.toml` if you have none (the older `litkit.local.toml` / `lacaixa.local.toml`
@@ -79,22 +79,22 @@ The tools do not automatically load `.env` files. Cloud agents need their own
 checkout and secrets supplied through their platform's secret/environment
 settings; local files and keys do not become available to cloud agents.
 
-Run `literature-kit status` again after editing. Keys are loaded on every
+Run `litkit status` again after editing. Keys are loaded on every
 command, so TOML changes need no restart. Environment changes may require
 restarting an already-running agent.
 
 ## Commands
 
 ```text
-literature-kit status
-literature-kit search --provider openalex --query "deep learning protein structure" --limit 20 --search-id SEARCH_ID
-literature-kit search --provider openalex --query "protein structure prediction" --filter "publication_year:2020-2026" --limit 150 --search-id SEARCH_ID
-literature-kit search --provider semantic-scholar --query "deep learning protein structure" --limit 20 --search-id SEARCH_ID
-literature-kit search --provider core --query "deep learning protein structure" --limit 20 --search-id SEARCH_ID
-literature-kit lookup --provider openalex --id "10.1038/s41586-021-03819-2"
-literature-kit lookup --provider semantic-scholar --id "DOI:10.1038/s41586-021-03819-2"
-literature-kit lookup --provider core --id "YOUR_CORE_WORK_ID" --fulltext
-literature-kit recommend --provider semantic-scholar --id "YOUR_SEED_DOI" --limit 20 --search-id SEARCH_ID
+litkit status
+litkit search --provider openalex --query "deep learning protein structure" --limit 20 --search-id SEARCH_ID
+litkit search --provider openalex --query "protein structure prediction" --filter "publication_year:2020-2026" --limit 150 --search-id SEARCH_ID
+litkit search --provider semantic-scholar --query "deep learning protein structure" --limit 20 --search-id SEARCH_ID
+litkit search --provider core --query "deep learning protein structure" --limit 20 --search-id SEARCH_ID
+litkit lookup --provider openalex --id "10.1038/s41586-021-03819-2"
+litkit lookup --provider semantic-scholar --id "DOI:10.1038/s41586-021-03819-2"
+litkit lookup --provider core --id "YOUR_CORE_WORK_ID" --fulltext
+litkit recommend --provider semantic-scholar --id "YOUR_SEED_DOI" --limit 20 --search-id SEARCH_ID
 ```
 
 SEARCH_ID is a placeholder, not an allocated search. Before a literature search, follow
@@ -206,12 +206,12 @@ directory to enable discovery; keys and the literature-kit installation remain s
 
 ## Shared command and configuration
 
-`literature-kit` is the project-independent entry point. After updating the checkout, re-run `uv sync`
+`litkit` is the project-independent entry point. After updating the checkout, re-run `uv sync`
 (fallback: `pip install -e .`) so the console command matches the code.
 
 Audits and downloads go to the active project's scratch folder. Set `LITERATURE_KIT_SCRATCH_DIR` for the
 process (or `scratch_dir` in the config file selected with `LITERATURE_KIT_CONFIG`) and confirm it with
-`literature-kit status` (`scratch_dir`) before any search. Do not set a global output folder. Retain adopted
+`litkit status` (`scratch_dir`) before any search. Do not set a global output folder. Retain adopted
 sources and final records under that project's rules. Installing the skill supplies guidance, not
 credentials or project paths. Catalogue rules apply only within the project that defines them.
 

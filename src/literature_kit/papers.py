@@ -470,7 +470,7 @@ def _add_actions(parser):
 
 
 def main(argv=None):
-    """Project-independent literature CLI (`literature-kit`)."""
+    """Project-independent literature CLI (`litkit`)."""
     import argparse
     import sys
 
@@ -478,7 +478,7 @@ def main(argv=None):
         if hasattr(stream, 'reconfigure'):
             stream.reconfigure(encoding='utf-8', errors='replace')
     parser = argparse.ArgumentParser(
-        prog='literature-kit',
+        prog='litkit',
         description='Scholarly discovery, identifier lookup and available full text across projects.',
     )
     _add_actions(parser)

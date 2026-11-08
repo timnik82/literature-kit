@@ -5,44 +5,44 @@ description: Use when an agent needs to find, check or retrieve scholarly papers
 
 # Literature API toolbox
 
-Use the existing `literature-kit` command instead of creating another API client. This toolbox retrieves source records; relevance, evidence quality and completeness still require judgment.
+Use the existing `litkit` command instead of creating another API client. This toolbox retrieves source records; relevance, evidence quality and completeness still require judgment.
 
 ## Locate the tool
 
-Run `literature-kit <operation> ...` from the project you are working in. It is installed once per computer from the `literature-kit` repository (`timnik82/literature-kit` on GitHub), with the environment's `Scripts` (Windows) or `bin` (macOS/Linux) folder on PATH. Where the checkout lives is a per-computer choice; the active project's own notes may say where. If the command is missing, install it from that repository (`uv sync` in the checkout, or `pip install -e .` in a venv) and add that folder to PATH. Do not write a new API client as a substitute, and do not assume installing this skill installs the command.
+Run `litkit <operation> ...` from the project you are working in. It is installed once per computer from the `litkit` repository (`timnik82/literature-kit` on GitHub), with the environment's `Scripts` (Windows) or `bin` (macOS/Linux) folder on PATH. Where the checkout lives is a per-computer choice; the active project's own notes may say where. If the command is missing, install it from that repository (`uv sync` in the checkout, or `pip install -e .` in a venv) and add that folder to PATH. Do not write a new API client as a substitute, and do not assume installing this skill installs the command.
 
 ## Setup check 1 — path routing (always do this)
 
 Literature commands write audits and downloads to the active project's scratch folder, so verify routing **before** any search, independently of API keys. Set `LITERATURE_KIT_SCRATCH_DIR` for the process (or `scratch_dir` in a git-ignored `literature-kit.local.toml` selected with `LITERATURE_KIT_CONFIG`) and check:
 
 ```bash
-literature-kit status
+litkit status
 ```
 
 `scratch_dir` must be the active project's scratch folder, outside synced document folders. Never set a global output folder shared across projects.
 
 ## Setup check 2 — provider keys (separate from path routing)
 
-Separately from path routing, verify provider key presence (keys do **not** configure paths, and paths do not configure keys). The same `literature-kit status` output lists them:
+Separately from path routing, verify provider key presence (keys do **not** configure paths, and paths do not configure keys). The same `litkit status` output lists them:
 
 It reports configuration and key presence without making an API request and never prints values. Keys come from environment variables — `OPENALEX_API_KEY` (OpenAlex), `SEMANTIC_SCHOLAR_API_KEY` (Semantic Scholar), `CORE_API_KEY` (CORE) — or from `[papers.openalex]`, `[papers.semantic-scholar]`, `[papers.core]` (`api_key`) in the `literature-kit.local.toml` file selected above. Environment values override the file. Europe PMC requires no key.
 
 Never print key values or put them in command arguments, reports, prompts, or shared repository files. Cloud agents need their own secrets configured; installing this skill supplies none.
 
-Read `docs/papers-api.md` in the literature-kit repository for detailed command limits and file guarantees. Use `literature-kit <operation> --help` for available arguments.
+Read `docs/papers-api.md` in the literature-kit repository for detailed command limits and file guarantees. Use `litkit <operation> --help` for available arguments.
 
 > Compatibility note: older `LITKIT_*` / `LACAIXA_*` variables and `litkit.local.toml` / `lacaixa.local.toml` files are still read as fallbacks (`LITERATURE_KIT_*` wins).
 
 ## Recommended order
 
-Use the tools together, cheapest and most specific step first. Firecrawl Research is an optional companion for semantic discovery and passage checks (`FIRECRAWL_API_KEY`; check with `firecrawl --status`); its own documentation and skills cover its details. If it is unavailable, skip its steps and use `literature-kit` routes directly.
+Use the tools together, cheapest and most specific step first. Firecrawl Research is an optional companion for semantic discovery and passage checks (`FIRECRAWL_API_KEY`; check with `firecrawl --status`); its own documentation and skills cover its details. If it is unavailable, skip its steps and use `litkit` routes directly.
 
 1. **Known paper:** go straight to step 5.
-2. **Discover.** Concept questions where wording varies: `firecrawl research search-papers "<question>" --limit 20`, with several framings. Firecrawl Research is mostly biomedical, so for physics, chemistry, materials or engineering start with a broad semantic connector instead (see [Other connectors](#other-connectors)). Exact terms, Boolean queries or structured filters: `literature-kit search` (see the routes below).
-3. **Expand** from your strongest hits, only if needed: `firecrawl research related-papers <seedIds...> --intent "<specific intent>"`, or `literature-kit recommend --provider semantic-scholar --id <seed>`. A recommendation can return 404 or nothing for a valid DOI, and it drifts in niche fields: check the first few results before reading more.
+2. **Discover.** Concept questions where wording varies: `firecrawl research search-papers "<question>" --limit 20`, with several framings. Firecrawl Research is mostly biomedical, so for physics, chemistry, materials or engineering start with a broad semantic connector instead (see [Other connectors](#other-connectors)). Exact terms, Boolean queries or structured filters: `litkit search` (see the routes below).
+3. **Expand** from your strongest hits, only if needed: `firecrawl research related-papers <seedIds...> --intent "<specific intent>"`, or `litkit recommend --provider semantic-scholar --id <seed>`. A recommendation can return 404 or nothing for a valid DOI, and it drifts in niche fields: check the first few results before reading more.
 4. **Check before fetching.** Confirm that a candidate really reports what you need: `firecrawl research read-paper <paperId> --question "<specific question>"`. Drop a candidate only when the evidence shows it does not qualify. A missing or inconclusive passage means unverified, not rejected: keep it and check another source.
-5. **Resolve** the record: `literature-kit lookup --provider <openalex|europe-pmc> --id <ID>`, using the `pmid:`, `pmcid:` or `doi:` from the hit. For an arXiv-only hit: `literature-kit lookup --provider semantic-scholar --id ARXIV:<id>`. `literature-kit` records carry no retraction field, though an OpenAlex raw response can include `is_retracted` and the audit retains it; check retraction status separately before citing (see [Other connectors](#other-connectors)).
-6. **Retrieve** only what the question needs: `literature-kit fulltext --provider europe-pmc --id <PMCID>` or `supplements`.
+5. **Resolve** the record: `litkit lookup --provider <openalex|europe-pmc> --id <ID>`, using the `pmid:`, `pmcid:` or `doi:` from the hit. For an arXiv-only hit: `litkit lookup --provider semantic-scholar --id ARXIV:<id>`. `litkit` records carry no retraction field, though an OpenAlex raw response can include `is_retracted` and the audit retains it; check retraction status separately before citing (see [Other connectors](#other-connectors)).
+6. **Retrieve** only what the question needs: `litkit fulltext --provider europe-pmc --id <PMCID>` or `supplements`.
 7. **Log** queries and adopted sources under the active project's rules.
 
 ## Choose the route
@@ -94,7 +94,7 @@ A full agent check of one paper can cost about 300,000 tokens, so scope it to th
 
 **Cross-checking against publisher text.** For open-access papers, the publisher's own text is a second source that does not share OCR or PDF text-layer errors. Prefer, in order:
 
-1. JATS XML from `literature-kit fulltext --provider europe-pmc`. Some articles are refused because the file holds a DTD declaration; that is a safety guard, so move to the next source.
+1. JATS XML from `litkit fulltext --provider europe-pmc`. Some articles are refused because the file holds a DTD declaration; that is a safety guard, so move to the next source.
 2. Publisher HTML with its tags, for example `firecrawl scrape <url> --format html --only-main-content -o <file>`. Keep `<sup>` and `<sub>` when extracting text. Publishers can block scrapers, and a manuscript-only paper may have no HTML.
 3. Scraped Markdown, for reading only: it can flatten `10²¹` to `1021` and drop equations.
 
@@ -116,13 +116,13 @@ Normalise superscripts, minus signs and LaTeX forms first, and remove citations.
 5. For useful hits, inspect actual abstracts or methods. Recommendations follow the seed paper's overall subject, so stop an irrelevant branch early. Retrieve only the source needed for the question.
 
 ```text
-literature-kit search --provider openalex --query "deep learning protein structure" --limit 20 --search-id SEARCH_ID
-literature-kit search --provider openalex --query "protein folding" --filter "title_and_abstract.search:structure,publication_year:2020-2026" --limit 20 --search-id SEARCH_ID
-literature-kit lookup --provider europe-pmc --id PMID:12345678
-literature-kit lookup --provider openalex --id 10.1038/s41586-020-2649-2
-literature-kit recommend --provider semantic-scholar --id 10.1038/s41586-020-2649-2 --limit 10 --search-id SEARCH_ID
-literature-kit fulltext --provider europe-pmc --id PMC1234567
-literature-kit supplements --provider europe-pmc --id PMC1234567
+litkit search --provider openalex --query "deep learning protein structure" --limit 20 --search-id SEARCH_ID
+litkit search --provider openalex --query "protein folding" --filter "title_and_abstract.search:structure,publication_year:2020-2026" --limit 20 --search-id SEARCH_ID
+litkit lookup --provider europe-pmc --id PMID:12345678
+litkit lookup --provider openalex --id 10.1038/s41586-020-2649-2
+litkit recommend --provider semantic-scholar --id 10.1038/s41586-020-2649-2 --limit 10 --search-id SEARCH_ID
+litkit fulltext --provider europe-pmc --id PMC1234567
+litkit supplements --provider europe-pmc --id PMC1234567
 ```
 
 Replace `SEARCH_ID` with the project-allocated ID if applicable. OpenAlex search is lexical: keep `--query` to a few keywords. To require a term in the title or abstract, OpenAlex still accepts the legacy `title_and_abstract.search:` filter shown above, but marks the `filter=field.search:` form deprecated in favour of the `search` parameter (`search.title_and_abstract`), and both cost the same, so use the filter form only when the term must be constrained to the title or abstract. Write year limits as a range. A `>` passed through a shell, such as a Python `subprocess` call with `shell=True`, redirects the output to a file and returns nothing. CORE `lookup --fulltext` requests available work text; null/missing text is possible. Europe PMC downloads JATS XML and a supplement ZIP, not the main article PDF or Markdown. The ZIP can include article images; a downloaded archive is not a reviewed supplement. Use the project's PDF acquisition/conversion/validation procedure when original figures, tables, or central numerical claims are needed. Do not treat XML/OCR as verified against the original publication PDF.

@@ -11,15 +11,15 @@ it contains nothing about any particular project.
 uv sync --locked            # creates .venv; or: pip install -e . in a venv
 ```
 
-Put the environment's `Scripts` folder (Windows) or `bin` folder (macOS/Linux) on PATH so `literature-kit` works in every project.
+Put the environment's `Scripts` folder (Windows) or `bin` folder (macOS/Linux) on PATH so `litkit` works in every project (`literature-kit` remains as an alias for now).
 Clone the repository anywhere you keep tools, install once per computer, and use the same command from every project.
 
 ## Use
 
 ```bash
-literature-kit status                       # key presence and scratch folder; no network
-literature-kit search --provider openalex --query "..." --limit 20
-literature-kit lookup --provider europe-pmc --id PMID:12345678
+litkit status                       # key presence and scratch folder; no network
+litkit search --provider openalex --query "..." --limit 20
+litkit lookup --provider europe-pmc --id PMID:12345678
 ```
 
 Details, limits and provider notes: [docs/papers-api.md](docs/papers-api.md). Per project, set

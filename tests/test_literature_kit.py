@@ -43,7 +43,7 @@ def test_skill_describes_the_combined_tool_order():
     from pathlib import Path
     skill = (Path(__file__).resolve().parents[1] / 'skills/literature-api-toolbox/SKILL.md').read_text(encoding='utf-8')
     assert skill.index('firecrawl research search-papers') < skill.index('firecrawl research read-paper')
-    assert skill.index('firecrawl research read-paper') < skill.index('literature-kit fulltext --provider')
+    assert skill.index('firecrawl research read-paper') < skill.index('litkit fulltext --provider')
 
 
 def test_python_m_status_and_import_is_side_effect_free():
@@ -64,7 +64,7 @@ def test_help_exposes_direct_operations(capsys):
         main(['--help'])
     assert exc.value.code == 0
     help_text = capsys.readouterr().out
-    assert 'usage: literature-kit ' in help_text
+    assert 'usage: litkit ' in help_text
     for operation in ('status', 'search', 'lookup', 'recommend', 'fulltext', 'supplements'):
         assert operation in help_text
 
