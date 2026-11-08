@@ -101,7 +101,7 @@ A full agent check of one paper can cost about 300,000 tokens, so scope it to th
 Run two comparisons, because each misses what the other finds:
 
 - **Existence:** every number in the conversion must occur in the publisher text. This catches invented content such as figure tables, but misses a wrong number that also occurs elsewhere.
-- **In place:** align the two word sequences (for example with `difflib.SequenceMatcher`) and list numbers that differ at the same position. This catches garbled ranges and single-digit slips.
+- **In place:** align the two word sequences (for example with `difflib.SequenceMatcher`) and flag numbers that differ at the same position, as well as aligned numeric insertions and deletions. This catches garbled ranges, omitted numbers (such as a dropped 8 in 2–8 that passes the existence check), and single-digit slips.
 
 Normalise superscripts, minus signs and LaTeX forms first, and remove citations. Expect a few false flags from equations and formatting, and settle every flag on the rendered PDF page. In a test on three papers, the in-place comparison caught 68 of 71 planted digit errors with at most 5 flags per paper, and found a garbled range the existence check missed; the existence check found an invented figure table that the in-place check missed. The PDF stays the version to cite, because the web text can differ from it.
 
