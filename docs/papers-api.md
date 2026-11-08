@@ -22,8 +22,12 @@ Zero/ambiguous/mismatched results are errors; no silent source substitution.
 Abstract fields can contain markup. Native field syntax belongs in --query.
 
 Full text is JATS article XML. The returned article PMCID is checked before
-saving; this does not validate scientific completeness against the PDF. ZIP
-downloads include a member/size manifest and CRC validation, with no extraction.
+saving; this does not validate scientific completeness against the PDF.
+`fulltext` refuses XML that holds a DTD or entity declaration and saves
+nothing. That check scans the response bytes for the ASCII declaration, so it
+catches UTF-8 XML but not a document encoded as UTF-16; treat it as a guard
+against the common case, not a guarantee. ZIP downloads include a member/size
+manifest and CRC validation, with no extraction.
 Archives with unsafe paths, over 10,000 members or over 250 MiB uncompressed
 size are rejected. XML/ZIP responses are limited to 50 MiB and never overwrite
 an existing file. Figures may be included in the supplement archive.
@@ -112,7 +116,7 @@ rules; the scratch JSON is not a substitute for its catalogue/log.
 Searches page automatically up to `--limit` (1-1000); recommendations allow
 1-500. Provider coverage and pagination limits still apply. Results are not
 automatically merged across providers; use DOI and source IDs to reconcile.
-OpenAlex accepts its native `--filter`; CORE accepts its own query syntax.
+OpenAlex accepts its native `--filter`; CORE accepts its own query syntax. To require a term in the title or abstract, OpenAlex still accepts the legacy `title_and_abstract.search:<term>` filter, but it now marks the `filter=field.search:` form deprecated in favour of the `search` parameter (`search.title_and_abstract`), and filter-based search costs the same, so treat the filter form as legacy. This drops works that match only in their full text. Write year limits as a range (`publication_year:2020-2026`), because a `>` passed through a shell can act as a redirect. Normalized records carry no retraction field; an OpenAlex raw response can include `is_retracted`, which the audit retains, so check retraction status with another source before citing.
 Semantic Scholar search here is relevance search, not its bulk Boolean API.
 Recommendations use its single-seed endpoint and default recent-paper pool.
 
